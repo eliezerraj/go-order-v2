@@ -28,7 +28,7 @@ type IOrderRepository interface {
 	BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error)
 	OrderAdd(ctx context.Context, order entity.Order) (*entity.Order, error)
 	OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error)
-	//CartItemAdd(ctx context.Context, cartItem entity.CartItem) (*entity.CartItem, error)
+	OrderItemAdd(ctx context.Context, orderItem entity.OrderItem) (*entity.OrderItem, error)
 }
 
 func NewOrderRepository(dbConnector connector.IDatabaseConnector) IOrderRepository {
@@ -70,18 +70,18 @@ func (p *OrderRepository) OrderAdd(ctx context.Context, order entity.Order) (*en
 
 	connectorWriter := p.dbConnector.Writer()
 
-	query := `INSERT INTO public.order (transaction_id,
+	query := `INSERT INTO public.order (order_number,
+										transaction_id,
 										order_date,
-										fk_cart_id,
-										user_id,
+										fk_order_item_id,
+										customer_id,
 										status,
 										currency,
 										amount,
-										address,
 										created_at)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
 
-	rows := connectorWriter.QueryRow(ctx, query, order.Transaction, order.Date, order.CartItem.ID, order.User, order.Status, order.Currency, order.Amount, order.CartItem.Price, order.CreatedAt)
+	rows := connectorWriter.QueryRow(ctx, query, order.OrderNumber, order.Transaction, order.Date, order.OrderItem.ID, order.CustomerID, order.Status, order.Currency, order.Amount, order.CreatedAt)
 
 	var id int
 	if err := rows.Scan(&id); err != nil {
@@ -127,25 +127,28 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (*en
 	query := `select o.id,
 					 o.order_number,
 					 o.transaction_id,
+					 o.fk_order_item_id,
 					 o.order_date,
 					 o.status,
 					 o.currency,
 					 o.amount,
-					 o.user_id,
-					 o.fk_cart_id,
+					 o.customer_id,
 					 o.created_at,
 					 o.updated_at
 				from public.order o
-				where o.id = $1`
+				where o.order_number = $1`
 
-	rows, err := connectorReader.Query(ctx, query, order.ID)
+	rows, err := connectorReader.Query(ctx, query, order.OrderNumber)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	orderItem := entity.OrderItem{}
+	order.OrderItem = &orderItem
+
 	if rows.Next() {
-		err = rows.Scan(&order.ID, &order.OrderNumber, &order.Transaction, &order.Date, &order.Status, &order.Currency, &order.Amount, &order.User, &order.CartItem.ID, &order.CreatedAt, &order.UpdatedAt)
+		err = rows.Scan(&order.ID, &order.OrderNumber, &order.Transaction, &order.OrderItem.ID, &order.Date, &order.Status, &order.Currency, &order.Amount, &order.CustomerID, &order.CreatedAt, &order.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -156,4 +159,41 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (*en
 	}
 
 	return &order, nil
+}
+
+func (p *OrderRepository) OrderItemAdd(ctx context.Context, orderItem entity.OrderItem) (*entity.OrderItem, error) {
+	tracer := otel.Tracer("order.repository")
+	ctx, span := tracer.Start(ctx, "OrderRepository.OrderItemAdd")
+	defer span.End()
+
+	logger.Info(ctx, "order repository OrderItemAdd called")
+
+	var err error
+
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			logger.Error(ctx, "order repository OrderItemAdd failed", zap.Error(err))
+		}
+	}()
+
+	connectorWriter := p.dbConnector.Writer()
+
+	query := `INSERT INTO public.order_item (fk_product_id,
+											status,
+											quantity,
+											discount,
+											created_at)
+				VALUES ($1, $2, $3, $4, $5) RETURNING id`
+
+	rows := connectorWriter.QueryRow(ctx, query, orderItem.Product.ID, orderItem.Status, orderItem.Quantity, orderItem.Discount, orderItem.CreatedAt)
+
+	var id int
+	if err := rows.Scan(&id); err != nil {
+		return nil, err
+	}
+
+	orderItem.ID = id
+	return &orderItem, nil
 }

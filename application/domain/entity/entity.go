@@ -12,15 +12,15 @@ type Order struct {
 	Status			string 		`json:"status,omitempty"`
 	Currency		string 		`json:"currency,omitempty"`
 	Amount			float64 	`json:"amount,omitempty"`	
-	User			string		`json:"user_id,omitempty"`
+	CustomerID		string		`json:"customer_id,omitempty"`
 	CreatedAt		time.Time 	`json:"created_at,omitempty"`
 	UpdatedAt		*time.Time 	`json:"updated_at,omitempty"`
-	CartItem		*CartItem	`json:"cart_item,omitempty"`
+	OrderItem		*OrderItem	`json:"order_item,omitempty"`
 	Payment			*[]Payment	`json:"payment,omitempty"`
 	StepProcess		*[]StepProcess `json:"step_process,omitempty"`	
 }
 
-type CartItem struct {
+type OrderItem struct {
 	ID				int			`json:"id,omitempty"`
 	Product 		Product		`json:"product"`
 	Status			string 		`json:"status,omitempty"`
@@ -55,11 +55,7 @@ type Product struct {
 	Type		string 		`json:"type,omitempty"`
 	Name		string 		`json:"name,omitempty"`
 	Status		string 		`json:"status,omitempty"`
-	LeadTime	int			`json:"lead_time,omitempty"`
-	Price		*Price		`json:"price,omitempty"`
-	CreatedAt	*time.Time 	`json:"created_at,omitempty"`
-	ExpiresAt	*time.Time 	`json:"expires_at,omitempty"`
-	UpdatedAt	*time.Time 	`json:"updated_at,omitempty"`	
+	Price		*Price		`json:"price,omitempty"`	
 }
 
 type Price struct {
@@ -68,7 +64,5 @@ type Price struct {
 	Currency		string		`json:"currency,omitempty"`
 	Amount			float64		`json:"amount,omitempty"`
 	StartedAt		*time.Time 	`json:"started_at,omitempty"`
-	EndedAt			*time.Time 	`json:"ended_at,omitempty"`
-	CreatedAt		*time.Time 	`json:"created_at,omitempty"`
-	UpdatedAt		*time.Time 	`json:"updated_at,omitempty"`	
+	EndedAt			*time.Time 	`json:"ended_at,omitempty"`	
 }

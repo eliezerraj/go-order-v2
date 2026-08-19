@@ -131,7 +131,7 @@ func main() {
 
 	// Setup observability and metrics
 	setupObservability(cfg)
-	setupMetrics(cfg)
+	//setupMetrics(cfg)
 
 	// Setup signal handling for graceful shutdown
 	stopSignal := make(chan os.Signal, 1)

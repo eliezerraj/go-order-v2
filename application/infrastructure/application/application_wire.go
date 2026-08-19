@@ -25,7 +25,7 @@ type UseCase struct {
 
 type Repository struct {
 	OrderRepository repository.IOrderRepository
-	CheckoutRepository repository.ICheckoutRepository
+	//CheckoutRepository repository.ICheckoutRepository
 }
 
 func NewApplication(cfg *config.Config) (*Application, error) {
@@ -76,18 +76,18 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 
 	// Repository initialization
 	orderRepository := repository.NewOrderRepository(dbConnector)
-	checkoutRepository := repository.NewCheckoutRepository(dbConnector)
+	//checkoutRepository := repository.NewCheckoutRepository(dbConnector)
 	
 	// UseCase initialization
 	orderUsecase := usecase.NewOrderUseCase(orderRepository)
-	checkoutUsecase := usecase.NewCheckoutUseCase(checkoutRepository)
+	//checkoutUsecase := usecase.NewCheckoutUseCase(checkoutRepository)
 
 	// Controller initialization
 	orderController := controller.NewOrderController(orderUsecase)
-	checkoutController := controller.NewCheckoutController(checkoutUsecase)
+	//checkoutController := controller.NewCheckoutController(checkoutUsecase)
 
 	return &Application{
 		OrderController: orderController,
-		CheckoutController: checkoutController,
+		//CheckoutController: checkoutController,
 	}, nil
 }

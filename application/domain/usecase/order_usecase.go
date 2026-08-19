@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"time"
-	"errors"
 	"context"
 
 	"go.uber.org/zap"
@@ -15,6 +14,13 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"go.opentelemetry.io/otel"
+)
+
+const (
+	// OrderStatusPending represents the pending status of an order.
+	OrderStatusPending = "pending"
+	// OrderStatusCompleted represents the completed status of an order.
+	OrderStatusCompleted = "completed"
 )
 
 type OrderUsecase struct {
@@ -73,9 +79,32 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 		}
 	}()
 
+	// Business logic: Set default values for order
 	createAt := time.Now().UTC()
-	order.CreatedAt = &createAt 
+	order.CreatedAt = createAt 
 
+	if order.Date == (time.Time{}) {
+		order.Date = createAt
+	}
+
+	order.Status = OrderStatusPending
+	order.Transaction = "txn_" + order.OrderNumber
+
+	// Create the order item first if it exists
+	if order.OrderItem != nil {
+		orderItem := *order.OrderItem
+		orderItem.Status = OrderStatusPending
+		orderItem.CreatedAt = createAt
+
+		resOrderItem, err := o.orderRepository.OrderItemAdd(ctx, orderItem)
+		if err != nil {
+			logger.Error(ctx, "order usecase OrderAdd failed to add order item", zap.Error(err))
+			return nil, err
+		}
+		order.OrderItem.ID = resOrderItem.ID
+	}
+
+	// Add the order to the repository
 	res, err := o.orderRepository.OrderAdd(ctx, order)
 	if err != nil {
 		logger.Error(ctx, "order usecase OrderAdd failed", zap.Error(err))

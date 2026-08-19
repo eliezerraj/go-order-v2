@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	"go.opentelemetry.io/otel"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/go-order-v2/application/domain/usecase"
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/domain/entity"
+	"github.com/go-order-v2/application/shared/helpers"
 )
 
 type OrderController struct {
@@ -31,26 +33,33 @@ func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderReques
 
 	logger.Info(ctx, "order controller OrderAdd called")
 
-	order := entity.Order{
-		OrderNumber: req.OrderNumber,
-		Date:        req.Date,
-		Status:      req.Status,
-		Currency:    req.Currency,
-		Amount:      req.Amount,
-		User:        req.User,
+	var orderDate *time.Time
+	if req.Date != "" {
+		parsedDate, err := helpers.ParseDate(req.Date)
+		if err != nil {
+			logger.Error(ctx, "failed to parse order date", zap.Error(err), zap.String("date", req.Date))
+			return nil, err
+		}
+		orderDate = parsedDate
 	}
 
-	if req.CartItem != nil {
-		cartItem := entity.CartItem{
+	order := entity.Order{
+		OrderNumber: req.OrderNumber,
+		Date:        *orderDate,
+		CustomerID:  req.CustomerID,
+	}
+
+	if req.OrderItem != nil {
+		orderItem := entity.OrderItem{
 			Product: entity.Product{
-				Sku: req.CartItem.Product.Sku,
+				Sku: req.OrderItem[0].Product.Sku,
 			},
-			Quantity: req.CartItem.Quantity,
-			Discount: req.CartItem.Discount,
-			Currency: req.CartItem.Currency,
-			Price:    req.CartItem.Price,
+			Quantity: req.OrderItem[0].Quantity,
+			Discount: req.OrderItem[0].Discount,
+			Currency: req.OrderItem[0].Product.Price.Currency,
+			Price:    req.OrderItem[0].Product.Price.Amount,
 		}
-		order.CartItem = &cartItem
+		order.OrderItem = &orderItem
 	}
 
 	res, err := o.orderUseCase.OrderAdd(ctx, order)
