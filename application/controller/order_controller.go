@@ -3,11 +3,12 @@ package controller
 import (
 	"context"
 	"time"
+	"go.uber.org/zap"
 
 	"go.opentelemetry.io/otel"
 
 	"github.com/eliezerraj/go-core/v3/logger"
-	"go.uber.org/zap"
+	
 	"github.com/go-order-v2/application/domain/usecase"
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/domain/entity"
@@ -33,35 +34,44 @@ func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderReques
 
 	logger.Info(ctx, "order controller OrderAdd called")
 
-	var orderDate *time.Time
+	var orderDate time.Time
 	if req.Date != "" {
 		parsedDate, err := helpers.ParseDate(req.Date)
 		if err != nil {
 			logger.Error(ctx, "failed to parse order date", zap.Error(err), zap.String("date", req.Date))
 			return nil, err
 		}
-		orderDate = parsedDate
+		orderDate = *parsedDate
 	}
 
+	// Load order items from the request and create entity.OrderItem objects
+	var orderItems []entity.OrderItem
+	if req.OrderItem != nil {
+		orderItems = make([]entity.OrderItem, 0, len(req.OrderItem))
+		for _, item := range req.OrderItem {
+			if item == nil {
+				continue
+			}
+			orderItem := entity.OrderItem{
+				Quantity: item.Quantity,
+				Discount: item.Discount,
+				Product: entity.Product{
+					Sku: item.Product.Sku,
+				},
+			}
+			orderItems = append(orderItems, orderItem)
+		}
+	}
+
+	// Create the order entity
 	order := entity.Order{
 		OrderNumber: req.OrderNumber,
-		Date:        *orderDate,
+		Date:        orderDate,
 		CustomerID:  req.CustomerID,
+		OrderItem:   &orderItems,
 	}
 
-	if req.OrderItem != nil {
-		orderItem := entity.OrderItem{
-			Product: entity.Product{
-				Sku: req.OrderItem[0].Product.Sku,
-			},
-			Quantity: req.OrderItem[0].Quantity,
-			Discount: req.OrderItem[0].Discount,
-			Currency: req.OrderItem[0].Product.Price.Currency,
-			Price:    req.OrderItem[0].Product.Price.Amount,
-		}
-		order.OrderItem = &orderItem
-	}
-
+	// Call the use case to add the order
 	res, err := o.orderUseCase.OrderAdd(ctx, order)
 	if err != nil {
 		logger.Error(ctx, "order controller OrderAdd failed", zap.Error(err))

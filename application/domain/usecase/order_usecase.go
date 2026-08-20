@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/infrastructure/repository"
+	"github.com/go-order-v2/application/infrastructure/module"
 
 	"github.com/jackc/pgx/v5"
 
@@ -25,6 +26,7 @@ const (
 
 type OrderUsecase struct {
 	orderRepository repository.IOrderRepository
+	inventoryModule module.InventoryModule
 }
 
 type IOrderUseCase interface {
@@ -33,14 +35,16 @@ type IOrderUseCase interface {
 	OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error)
 }
 
-func NewOrderUseCase(orderRepository repository.IOrderRepository) IOrderUseCase {
+func NewOrderUseCase(orderRepository repository.IOrderRepository, inventoryModule module.InventoryModule) IOrderUseCase {
 	logger.InfoOutCtx("initializing order usecase SUCCESSFULLY")
 
 	return &OrderUsecase{
 		orderRepository: orderRepository,
+		inventoryModule: inventoryModule,
 	}
 }
 
+// BeginTx starts a new database transaction with the specified options.
 func (o *OrderUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error) {
 	logger.Info(ctx, "order usecase BeginTx called")
 
@@ -53,6 +57,7 @@ func (o *OrderUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx,
 	return tx, nil
 }
 
+// AddOrder adds a new order to the repository.
 func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entity.Order, error) {
 	tracer := otel.Tracer("order.repository")
 	ctx, span := tracer.Start(ctx, "OrderUsecase.OrderAdd")
@@ -67,6 +72,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 	}
 
 	defer func() {
+		//tx.Commit(ctx)
 		if err != nil {
 			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
 				logger.Error(ctx, "order usecase OrderAdd failed to rollback transaction", zap.Error(rollbackErr))
@@ -82,44 +88,62 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 	// Business logic: Set default values for order
 	createAt := time.Now().UTC()
 	order.CreatedAt = createAt 
-
 	if order.Date == (time.Time{}) {
 		order.Date = createAt
 	}
-
 	order.Status = OrderStatusPending
 	order.Transaction = "txn_" + order.OrderNumber
 
-	// Create the order item first if it exists
-	if order.OrderItem != nil {
-		orderItem := *order.OrderItem
-		orderItem.Status = OrderStatusPending
-		orderItem.CreatedAt = createAt
-
-		resOrderItem, err := o.orderRepository.OrderItemAdd(ctx, orderItem)
-		if err != nil {
-			logger.Error(ctx, "order usecase OrderAdd failed to add order item", zap.Error(err))
-			return nil, err
-		}
-		order.OrderItem.ID = resOrderItem.ID
-	}
-
 	// Add the order to the repository
-	res, err := o.orderRepository.OrderAdd(ctx, order)
+	res_order, err := o.orderRepository.OrderAdd(ctx, order)
 	if err != nil {
 		logger.Error(ctx, "order usecase OrderAdd failed", zap.Error(err))
 		return nil, err
 	}
 
-	if err != nil {
-		logger.Error(ctx, "order usecase OrderAdd failed to commit transaction", zap.Error(err))
-		return nil, err
+	// Initialize order amount
+	var orderAmount float64 = 0.0
+
+	// Check inventory for the product if order item exists
+	listOrderItem := []entity.OrderItem{}
+
+	forderItem := order.OrderItem; for _, item := range *forderItem {
+		res_order_item_list, err := o.inventoryModule.GetInventory(ctx, item.Product.Sku)
+		if err != nil {
+			logger.Error(ctx, "order usecase OrderAdd failed to check inventory", zap.Error(err))
+			return nil, err
+		}
+
+		orderItem := entity.OrderItem{
+			FkOrderID: res_order.ID,
+			Product:   *res_order_item_list,
+			Currency:  res_order_item_list.Price.Currency,
+			Amount:    res_order_item_list.Price.Amount * float64(item.Quantity),
+			Quantity:  item.Quantity,
+			Discount:  item.Discount,
+			Status:    OrderStatusPending,
+			CreatedAt: createAt,
+		}
+
+		res_order_item, err := o.orderRepository.OrderItemAdd(ctx, orderItem)
+		if err != nil {
+			logger.Error(ctx, "order usecase OrderAdd failed to add order item", zap.Error(err))
+			return nil, err
+		}
+		orderAmount += orderItem.Amount - (orderItem.Discount * -1)
+		orderItem.ID = res_order_item.ID
+		listOrderItem = append(listOrderItem, orderItem)
 	}
+	
+	res_order.OrderItem = &listOrderItem
+	res_order.Currency = (*order.OrderItem)[0].Currency
+	res_order.Amount = orderAmount
 
 	logger.Info(ctx, "order usecase OrderAdd completed SUCCESSFULLY")
-	return res, nil
+	return res_order, nil
 }
 
+// GetOrder retrieves an order from the repository based on the provided order details.
 func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error) {
 	tracer := otel.Tracer("order.repository")
 	ctx, span := tracer.Start(ctx, "OrderUsecase.OrderGet")

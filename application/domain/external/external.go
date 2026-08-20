@@ -1,5 +1,9 @@
 package external
 
+import (
+	"github.com/go-order-v2/application/domain/entity"
+)
+
 type OrderRequest struct {
 	OrderNumber		string		`json:"order_number,omitempty"`
 	Date			string	`json:"order_date,omitempty"`
@@ -26,4 +30,9 @@ type PriceRequest struct {
 type OrderResponse struct {
 	Response    string	`json:"response"`
 	Order		any	`json:"order,omitempty"`
+}
+
+type InventoryResponse struct {
+    Response string         `json:"response"`
+    Product  entity.Product `json:"product"`
 }

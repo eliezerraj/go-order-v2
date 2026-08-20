@@ -73,15 +73,14 @@ func (p *OrderRepository) OrderAdd(ctx context.Context, order entity.Order) (*en
 	query := `INSERT INTO public.order (order_number,
 										transaction_id,
 										order_date,
-										fk_order_item_id,
 										customer_id,
 										status,
 										currency,
 										amount,
 										created_at)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
-	rows := connectorWriter.QueryRow(ctx, query, order.OrderNumber, order.Transaction, order.Date, order.OrderItem.ID, order.CustomerID, order.Status, order.Currency, order.Amount, order.CreatedAt)
+	rows := connectorWriter.QueryRow(ctx, query, order.OrderNumber, order.Transaction, order.Date, order.CustomerID, order.Status, order.Currency, order.Amount, order.CreatedAt)
 
 	var id int
 	if err := rows.Scan(&id); err != nil {
@@ -127,7 +126,6 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (*en
 	query := `select o.id,
 					 o.order_number,
 					 o.transaction_id,
-					 o.fk_order_item_id,
 					 o.order_date,
 					 o.status,
 					 o.currency,
@@ -144,11 +142,9 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (*en
 	}
 	defer rows.Close()
 
-	orderItem := entity.OrderItem{}
-	order.OrderItem = &orderItem
-
+	order.OrderItem = &[]entity.OrderItem{}
 	if rows.Next() {
-		err = rows.Scan(&order.ID, &order.OrderNumber, &order.Transaction, &order.OrderItem.ID, &order.Date, &order.Status, &order.Currency, &order.Amount, &order.CustomerID, &order.CreatedAt, &order.UpdatedAt)
+		err = rows.Scan(&order.ID, &order.OrderNumber, &order.Transaction, &order.Date, &order.Status, &order.Currency, &order.Amount, &order.CustomerID, &order.CreatedAt, &order.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -166,7 +162,7 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, orderItem entity.Ord
 	ctx, span := tracer.Start(ctx, "OrderRepository.OrderItemAdd")
 	defer span.End()
 
-	logger.Info(ctx, "order repository OrderItemAdd called")
+	logger.Info(ctx, "order repository OrderItemAdd called", zap.Any("order_item", orderItem))
 
 	var err error
 
@@ -180,14 +176,17 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, orderItem entity.Ord
 
 	connectorWriter := p.dbConnector.Writer()
 
-	query := `INSERT INTO public.order_item (fk_product_id,
-											status,
-											quantity,
-											discount,
-											created_at)
-				VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO public.order_item (	fk_order_id,
+												fk_product_id,
+												status,
+												quantity,
+												discount,
+												currency,
+												amount,
+												created_at)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
-	rows := connectorWriter.QueryRow(ctx, query, orderItem.Product.ID, orderItem.Status, orderItem.Quantity, orderItem.Discount, orderItem.CreatedAt)
+	rows := connectorWriter.QueryRow(ctx, query, orderItem.FkOrderID, orderItem.Product.ID, orderItem.Status, orderItem.Quantity, orderItem.Discount, orderItem.Currency, orderItem.Amount, orderItem.CreatedAt)
 
 	var id int
 	if err := rows.Scan(&id); err != nil {

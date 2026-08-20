@@ -15,19 +15,20 @@ type Order struct {
 	CustomerID		string		`json:"customer_id,omitempty"`
 	CreatedAt		time.Time 	`json:"created_at,omitempty"`
 	UpdatedAt		*time.Time 	`json:"updated_at,omitempty"`
-	OrderItem		*OrderItem	`json:"order_item,omitempty"`
+	OrderItem		*[]OrderItem	`json:"order_item,omitempty"`
 	Payment			*[]Payment	`json:"payment,omitempty"`
 	StepProcess		*[]StepProcess `json:"step_process,omitempty"`	
 }
 
 type OrderItem struct {
 	ID				int			`json:"id,omitempty"`
+	FkOrderID		int			`json:"fk_order_id,omitempty"`
 	Product 		Product		`json:"product"`
 	Status			string 		`json:"status,omitempty"`
 	Quantity		int			`json:"quantity,omitempty"`
 	Discount		float64		`json:"discount,omitempty"`
 	Currency		string 		`json:"currency,omitempty"`	
-	Price			float64		`json:"price,omitempty"`
+	Amount			float64		`json:"amount,omitempty"`
 	CreatedAt		time.Time 	`json:"created_at,omitempty"`
 	UpdatedAt		*time.Time 	`json:"updated_at,omitempty"`	
 }
@@ -64,5 +65,5 @@ type Price struct {
 	Currency		string		`json:"currency,omitempty"`
 	Amount			float64		`json:"amount,omitempty"`
 	StartedAt		*time.Time 	`json:"started_at,omitempty"`
-	EndedAt			*time.Time 	`json:"ended_at,omitempty"`	
+	EndedAt			*time.Time 	`json:"ended_at,omitempty"`
 }
