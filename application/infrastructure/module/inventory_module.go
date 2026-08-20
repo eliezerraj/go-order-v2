@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	//"errors"
 	"go.uber.org/zap"
+
+	"go.opentelemetry.io/otel"
 
 	"github.com/eliezerraj/go-core/v3/httpclient"
 	"github.com/eliezerraj/go-core/v3/logger"
@@ -30,23 +31,37 @@ func NewInventoryModule(cfg *config.Config, client	httpclient.IHTTPClient) Inven
 	}
 }
 
-func (im *InventoryModule) GetInventory(ctx context.Context, productID string) (*entity.Product, error) {
-	logger.Info(ctx, "inventory module GetInventory called")
-
-	method := "GET"
-	endpoint := fmt.Sprintf("%s%s/%s", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, productID)
-
-	logger.Info(ctx, "inventory module GetInventory request", zap.String("method", method), zap.String("endpoint", endpoint))
-	
+func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Product) (*entity.Product, error) {
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Inventory.Timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctxHttpTimeout, method, endpoint, nil)
+	tracer := otel.Tracer("inventory.module")
+	ctxSpan, span := tracer.Start(ctxHttpTimeout, "InventoryModule.GetInventory")
+	defer span.End()
+
+	logger.Info(ctx, "inventory module GetInventory called")
+
+	var endpoint string
+	method := "GET"
+	
+	if product.Sku != "" {
+		endpoint = fmt.Sprintf("%s%s/%s", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.Sku)
+	} else if product.ID != 0 {
+		endpoint = fmt.Sprintf("%s%s/%d", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.ID)
+	} else {
+		err := fmt.Errorf("product must have either SKU or ID")
+		logger.Error(ctx, "inventory module GetInventory failed", zap.Error(err))
+		return nil, err
+	}
+
+	logger.Info(ctx, "inventory module GetInventory request", zap.String("method", method), zap.String("endpoint", endpoint))
+	
+	req, err := http.NewRequestWithContext(ctxSpan, method, endpoint, nil)
 	if err != nil {
 		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return nil, err
 	}
-	resp, err := im.client.Do(req)
+	resp, err := im.client.Do(req.WithContext(ctxSpan))
 	if err != nil {
 		logger.Error(ctx, "Failed to perform request", zap.Error(err))
 		return nil, err

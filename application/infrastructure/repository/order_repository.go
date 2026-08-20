@@ -26,9 +26,10 @@ type OrderRepository struct {
 
 type IOrderRepository interface {
 	BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error)
-	OrderAdd(ctx context.Context, order entity.Order) (*entity.Order, error)
+	OrderAdd(ctx context.Context, tx pgx.Tx, order entity.Order) (*entity.Order, error)
 	OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error)
-	OrderItemAdd(ctx context.Context, orderItem entity.OrderItem) (*entity.OrderItem, error)
+	OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (*entity.OrderItem, error)
+	OrderItensGet(ctx context.Context, order entity.Order) (*[]entity.OrderItem, error)
 }
 
 func NewOrderRepository(dbConnector connector.IDatabaseConnector) IOrderRepository {
@@ -51,47 +52,10 @@ func (p *OrderRepository) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.
 	return tx, nil
 }
 
-func (p *OrderRepository) OrderAdd(ctx context.Context, order entity.Order) (*entity.Order, error) {
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderRepository.OrderAdd")
-	defer span.End()
-	
-	logger.Info(ctx, "order repository OrderAdd called")
+func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res_order *entity.Order, err error) {
+	logger.Info(ctx, "order repository OrderGet called")
 
-	var err error
-
-	defer func() {
-		if err != nil {
-			span.RecordError(err) 
-			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "order repository OrderAdd failed", zap.Error(err))
-		}
-	}()
-
-	connectorWriter := p.dbConnector.Writer()
-
-	query := `INSERT INTO public.order (order_number,
-										transaction_id,
-										order_date,
-										customer_id,
-										status,
-										currency,
-										amount,
-										created_at)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
-
-	rows := connectorWriter.QueryRow(ctx, query, order.OrderNumber, order.Transaction, order.Date, order.CustomerID, order.Status, order.Currency, order.Amount, order.CreatedAt)
-
-	var id int
-	if err := rows.Scan(&id); err != nil {
-		return nil, err
-	}
-
-	order.ID = id
-	return &order, nil
-}
-
-func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error) {
+	// Tracing and metrics
 	tracer := otel.Tracer("order.repository")
     ctx, span := tracer.Start(ctx, "OrderRepository.OrderGet")
     defer span.End()
@@ -105,10 +69,7 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (*en
         attribute.String("operation", "OrderGet"),
     ))
 
-	logger.Info(ctx, "order repository OrderGet called")
-
-	var err error
-
+	// Defer function to handle error logging and metrics recording	
 	defer func() {
 		if err != nil {
 			span.RecordError(err) 
@@ -157,25 +118,154 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (*en
 	return &order, nil
 }
 
-func (p *OrderRepository) OrderItemAdd(ctx context.Context, orderItem entity.OrderItem) (*entity.OrderItem, error) {
+func (p *OrderRepository) OrderItensGet(ctx context.Context, order entity.Order) ( res_order_itens *[]entity.OrderItem, err error) {
+	logger.Info(ctx, "order repository OrderItensGet called")
+
+	// Tracing and metrics
+	tracer := otel.Tracer("order.repository")
+	ctx, span := tracer.Start(ctx, "OrderRepository.OrderItensGet")
+	defer span.End()
+
+	meter := otel.Meter("go-order-v2.repository")
+    counter, _ := meter.Int64Counter("db_custom_order_itens_get_requests_total")
+    histogram, _ := meter.Float64Histogram("db_custom_order_itens_get_duration_seconds")
+    start := time.Now()
+
+    counter.Add(ctx, 1, metric.WithAttributes(
+        attribute.String("operation", "OrderItensGet"),
+    ))
+
+	// Defer function to handle error logging and metrics recording	
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			logger.Error(ctx, "order repository OrderItensGet failed", zap.Error(err))
+		}
+		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
+			attribute.String("operation", "OrderItensGet"),
+		))
+	}()
+
+	// Get a reader connection from the database connector
+	connectorReader := p.dbConnector.Reader()
+
+	query := `select o.id,
+					 o.fk_order_id,
+					 o.fk_product_id,
+					 o.status,
+					 o.quantity,
+					 o.discount,
+					 o.currency,
+					 o.amount,
+					 o.created_at,
+					 o.updated_at
+				from public.order_item o
+				where o.fk_order_id = $1`
+
+	rows, err := connectorReader.Query(ctx, query, order.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	orderItems := []entity.OrderItem{}
+	for rows.Next() {
+		var item entity.OrderItem
+		var itemProduct entity.Product
+		err = rows.Scan(&item.ID, &item.FkOrderID, &itemProduct.ID, &item.Status, &item.Quantity, &item.Discount, &item.Currency, &item.Amount, &item.CreatedAt, &item.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		item.Product = itemProduct
+		orderItems = append(orderItems, item)
+	}
+
+	res_order_itens = &orderItems
+	return res_order_itens, nil
+}
+
+func (p *OrderRepository) OrderAdd(ctx context.Context, tx pgx.Tx, order entity.Order) (res_order *entity.Order, err error) {
+	logger.Info(ctx, "order repository OrderAdd called")
+
+	// Tracing and metrics
+	tracer := otel.Tracer("order.repository")
+	ctx, span := tracer.Start(ctx, "OrderRepository.OrderAdd")
+	defer span.End()
+	
+	meter := otel.Meter("go-order-v2.repository")
+    counter, _ := meter.Int64Counter("db_custom_order_add_requests_total")
+    histogram, _ := meter.Float64Histogram("db_custom_order_add_duration_seconds")
+    start := time.Now()
+
+    counter.Add(ctx, 1, metric.WithAttributes(
+        attribute.String("operation", "OrderAdd"),
+    ))
+
+	// Defer function to handle error logging and metrics recording
+	defer func() {
+		if err != nil {
+			span.RecordError(err) 
+			span.SetStatus(codes.Error, err.Error())
+			logger.Error(ctx, "order repository OrderAdd failed", zap.Error(err))
+		}
+		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
+			attribute.String("operation", "OrderAdd"),
+		))
+	}()
+
+	// Insert the order into the database
+	query := `INSERT INTO public.order (order_number,
+										transaction_id,
+										order_date,
+										customer_id,
+										status,
+										currency,
+										amount,
+										created_at)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
+
+	rows := tx.QueryRow(ctx, query, order.OrderNumber, order.Transaction, order.Date, order.CustomerID, order.Status, order.Currency, order.Amount, order.CreatedAt)
+
+	var id int
+	if err := rows.Scan(&id); err != nil {
+		return nil, err
+	}
+
+	order.ID = id
+	return &order, nil
+}
+
+func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (res_order_item *entity.OrderItem, err error) {
+	logger.Info(ctx, "order repository OrderItemAdd called", zap.Any("order_item", orderItem))
+
+	// Tracing and metrics
 	tracer := otel.Tracer("order.repository")
 	ctx, span := tracer.Start(ctx, "OrderRepository.OrderItemAdd")
 	defer span.End()
 
-	logger.Info(ctx, "order repository OrderItemAdd called", zap.Any("order_item", orderItem))
+	meter := otel.Meter("go-order-v2.repository")
+    counter, _ := meter.Int64Counter("db_custom_order_item_add_requests_total")
+    histogram, _ := meter.Float64Histogram("db_custom_order_item_add_duration_seconds")
+    start := time.Now()
 
-	var err error
+    counter.Add(ctx, 1, metric.WithAttributes(
+        attribute.String("operation", "OrderItemAdd"),
+    ))
 
+	// Defer function to handle error logging and metrics recording
 	defer func() {
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 			logger.Error(ctx, "order repository OrderItemAdd failed", zap.Error(err))
 		}
+		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
+			attribute.String("operation", "OrderItemAdd"),
+		))
 	}()
 
-	connectorWriter := p.dbConnector.Writer()
-
+	// Insert the order item into the database
 	query := `INSERT INTO public.order_item (	fk_order_id,
 												fk_product_id,
 												status,
@@ -186,7 +276,7 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, orderItem entity.Ord
 												created_at)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 
-	rows := connectorWriter.QueryRow(ctx, query, orderItem.FkOrderID, orderItem.Product.ID, orderItem.Status, orderItem.Quantity, orderItem.Discount, orderItem.Currency, orderItem.Amount, orderItem.CreatedAt)
+	rows := tx.QueryRow(ctx, query, orderItem.FkOrderID, orderItem.Product.ID, orderItem.Status, orderItem.Quantity, orderItem.Discount, orderItem.Currency, orderItem.Amount, orderItem.CreatedAt)
 
 	var id int
 	if err := rows.Scan(&id); err != nil {

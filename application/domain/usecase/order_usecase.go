@@ -58,12 +58,12 @@ func (o *OrderUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx,
 }
 
 // AddOrder adds a new order to the repository.
-func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entity.Order, error) {
+func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_order *entity.Order, err error) {
+	logger.Info(ctx, "order usecase OrderAdd called")
+
 	tracer := otel.Tracer("order.repository")
 	ctx, span := tracer.Start(ctx, "OrderUsecase.OrderAdd")
 	defer span.End()
-
-	logger.Info(ctx, "order usecase OrderAdd called")
 
 	tx, err := o.orderRepository.BeginTx(ctx, pgx.TxOptions{ IsoLevel: pgx.ReadCommitted, AccessMode: pgx.ReadWrite })
 	if err != nil {
@@ -72,9 +72,8 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 	}
 
 	defer func() {
-		//tx.Commit(ctx)
 		if err != nil {
-			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil && rollbackErr != pgx.ErrTxClosed {
 				logger.Error(ctx, "order usecase OrderAdd failed to rollback transaction", zap.Error(rollbackErr))
 			}
 		} else {
@@ -84,6 +83,10 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 			}
 		}
 	}()
+
+	//-----------------------------------------------------------
+	// Ordem SECTION
+	//-----------------------------------------------------------
 
 	// Business logic: Set default values for order
 	createAt := time.Now().UTC()
@@ -95,11 +98,15 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 	order.Transaction = "txn_" + order.OrderNumber
 
 	// Add the order to the repository
-	res_order, err := o.orderRepository.OrderAdd(ctx, order)
+	res_order, err = o.orderRepository.OrderAdd(ctx, tx, order)
 	if err != nil {
 		logger.Error(ctx, "order usecase OrderAdd failed", zap.Error(err))
 		return nil, err
 	}
+
+	//-----------------------------------------------------------
+	// Ordem Item SECTION
+	//-----------------------------------------------------------
 
 	// Initialize order amount
 	var orderAmount float64 = 0.0
@@ -108,7 +115,8 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 	listOrderItem := []entity.OrderItem{}
 
 	forderItem := order.OrderItem; for _, item := range *forderItem {
-		res_order_item_list, err := o.inventoryModule.GetInventory(ctx, item.Product.Sku)
+		
+		res_order_item_list, err := o.inventoryModule.GetInventory(ctx, item.Product)
 		if err != nil {
 			logger.Error(ctx, "order usecase OrderAdd failed to check inventory", zap.Error(err))
 			return nil, err
@@ -125,7 +133,8 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 			CreatedAt: createAt,
 		}
 
-		res_order_item, err := o.orderRepository.OrderItemAdd(ctx, orderItem)
+		// Add the order item to the repository
+		res_order_item, err := o.orderRepository.OrderItemAdd(ctx, tx, orderItem)
 		if err != nil {
 			logger.Error(ctx, "order usecase OrderAdd failed to add order item", zap.Error(err))
 			return nil, err
@@ -135,6 +144,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (*entit
 		listOrderItem = append(listOrderItem, orderItem)
 	}
 	
+	// Business logic: Set the order items, currency, and total amount for the order
 	res_order.OrderItem = &listOrderItem
 	res_order.Currency = (*order.OrderItem)[0].Currency
 	res_order.Amount = orderAmount
@@ -151,11 +161,33 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 
 	logger.Info(ctx, "order usecase OrderGet called")
 
-	res, err := o.orderRepository.OrderGet(ctx, order)
+	// Get the order from the repository
+	res_order, err := o.orderRepository.OrderGet(ctx, order)
 	if err != nil {
 		logger.Error(ctx, "order usecase OrderGet failed", zap.Error(err))
 		return nil, err
 	}
 
-	return res, nil
+	// Get order items for the order
+	res_order_itens, err := o.orderRepository.OrderItensGet(ctx, *res_order)
+	if err != nil {
+		logger.Error(ctx, "order usecase OrderGet failed to get order items", zap.Error(err))
+		return nil, err
+	}
+
+	logger.Info(ctx, "======>", zap.Any("order_items", res_order_itens))
+
+	// Get Product details for each order item from the inventory module
+	for _, item := range *res_order_itens {
+		res_product, err := o.inventoryModule.GetInventory(ctx, item.Product)
+		if err != nil {
+			logger.Error(ctx, "order usecase OrderGet failed to check inventory", zap.Error(err))
+			return nil, err
+		}
+		item.Product = *res_product
+	}
+
+	res_order.OrderItem = res_order_itens
+
+	return res_order, nil
 }
