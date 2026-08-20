@@ -4,13 +4,15 @@ import (
 	"context"
 	"time"
 	"strings"
-	
+	"net/http"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
 	"go.opentelemetry.io/otel"
     "go.opentelemetry.io/otel/attribute"
     "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 const RequestIDHeaderName = "x-request-id"
@@ -109,5 +111,24 @@ func MetricsMiddleware(next fiber.Handler) fiber.Handler {
         ))
 
         return err
+	}
+}
+
+
+// TraceExtractionMiddleware is a middleware function that extracts the trace context from incoming requests and sets it in the request context. This allows for distributed tracing across services.
+func TraceExtractionMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		headerMap := make(http.Header)
+		for k, values := range c.GetReqHeaders() {
+			for _, v := range values {
+				headerMap.Add(k, v)
+			}
+		}
+
+		propagator := otel.GetTextMapPropagator()
+		ctx := propagator.Extract(c.UserContext(), propagation.HeaderCarrier(headerMap))
+		c.SetUserContext(ctx)
+
+		return c.Next()
 	}
 }

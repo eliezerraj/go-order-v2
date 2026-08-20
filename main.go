@@ -19,7 +19,6 @@ import (
 	coreMetricLib "github.com/eliezerraj/go-core/v3/observability/metric"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
 )
 
 const RequestIDHeaderName = "x-request-id"
@@ -69,9 +68,7 @@ func setupObservability(cfg *config.Config){
 		appInfoTrace,
 	)
 
-	otel.SetTextMapPropagator(propagation.TraceContext{})
 	otel.SetTracerProvider(tracerProvider.TracerProvider)
-
 }
 
 // Setup metrics
