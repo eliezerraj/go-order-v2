@@ -73,6 +73,7 @@ type Config struct {
 	Log         Log
 	OtelEnv		OtelEnv
 	Authorization Authorization
+	Inventory   Inventory
 }
 
 type OtelEnv struct {
@@ -80,6 +81,12 @@ type OtelEnv struct {
 	UseStdoutTracerExporter		bool	`env:"OTEL_STDOUT_TRACER" envDefault:"false"`
 	UseOtlpCollector			bool	`env:"OTEL_COLLECTOR" envDefault:"true"`
 	OtelMetricsPort				string	`env:"OTEL_METRICS_PORT" envDefault:"9000"`
+}
+
+type Inventory struct {
+	Endpoint string        `env:"INVENTORY_ENDPOINT"`
+	UrlPath  string        `env:"INVENTORY_URL_PATH"`
+	Timeout  time.Duration `env:"INVENTORY_ENDPOINT_TIMEOUT"`
 }
 
 func Load() (cfg *Config, err error) {

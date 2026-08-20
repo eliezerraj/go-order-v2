@@ -3,6 +3,7 @@ package webserver
 import (
 	"os"
 	"context"
+	"time"
 	"go.uber.org/zap"
 
 	"github.com/eliezerraj/go-core/v3/logger"
@@ -39,6 +40,7 @@ func NewWebServer(cfg *config.Config) *WebServer {
 
 func (s *WebServer) Run() {
 	logger.InfoOutCtx("starting fiber server on port: " + s.cfg.HTTP.Port)
+
 	if err := s.fiberServer.FiberApp.Listen(":" + s.cfg.HTTP.Port); err != nil {
 		logger.FatalOutCtx("failed to start HTTP server", zap.Error(err))
 	}
@@ -46,7 +48,10 @@ func (s *WebServer) Run() {
 
 func (s *WebServer) Shutdown() {
 	logger.InfoOutCtx("webserver is shutting down SUCCESSFULLY")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	if err := s.fiberServer.FiberApp.Shutdown(); err != nil {
-		logger.ErrorOutCtx("failed to shutdown HTTP server", zap.Error(err))
+		logger.Error(ctx, "failed to shutdown HTTP server", zap.Error(err))
 	}
 }
