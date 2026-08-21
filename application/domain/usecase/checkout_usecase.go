@@ -9,6 +9,7 @@ import (
 	"github.com/eliezerraj/go-core/v3/logger"
 
 	"github.com/go-order-v2/application/domain/entity"
+	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
 
@@ -25,6 +26,7 @@ const (
 )
 
 type CheckoutUsecase struct {
+	orderRepository    repository.IOrderRepository
 	checkoutRepository repository.ICheckoutRepository
 	paymentModule     module.PaymentModule
 }
@@ -35,12 +37,13 @@ type ICheckoutUseCase interface {
 	CheckoutGet(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error)
 }
 
-func NewCheckoutUseCase(checkoutRepository repository.ICheckoutRepository, paymentModule module.PaymentModule) ICheckoutUseCase {
+func NewCheckoutUseCase(orderRepository repository.IOrderRepository, checkoutRepository repository.ICheckoutRepository, paymentModule module.PaymentModule) ICheckoutUseCase {
 	logger.InfoOutCtx("initializing checkout usecase SUCCESSFULLY")
 
 	return &CheckoutUsecase{
+		orderRepository:    orderRepository,
 		checkoutRepository: checkoutRepository,
-		paymentModule:    paymentModule,
+		paymentModule:      paymentModule,
 	}
 }
 
@@ -61,16 +64,19 @@ func (c *CheckoutUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.
 func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Checkout) (res_checkout *entity.Checkout, err error) {
 	logger.Info(ctx, "checkout usecase CheckoutAdd called")
 
+	// Tracing
 	tracer := otel.Tracer("order.repository")
 	ctx, span := tracer.Start(ctx, "CheckoutUsecase.CheckoutAdd")
 	defer span.End()
 
+	// Start a new transaction
 	tx, err := c.checkoutRepository.BeginTx(ctx, pgx.TxOptions{ IsoLevel: pgx.ReadCommitted, AccessMode: pgx.ReadWrite })
 	if err != nil {
 		logger.Error(ctx, "checkout usecase CheckoutAdd failed to begin transaction", zap.Error(err))
 		return nil, err
 	}
 
+	// Ensure that the transaction is either committed or rolled back
 	defer func() {
 		if err != nil {
 			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil && rollbackErr != pgx.ErrTxClosed {
@@ -85,9 +91,18 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	}()
 
 	//-----------------------------------------------------------
-	// Order SECTION
+	// Order/Inventory SECTION (get product price)
 	//-----------------------------------------------------------
+	
+	res_order, err := c.orderRepository.OrderGet(ctx, checkout.Order)
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutAdd failed to get order", zap.Error(err))
+		return nil, err
+	}
 
+	//-----------------------------------------------------------
+	// Checkout SECTION
+	//-----------------------------------------------------------
 	// Business logic: Set default values for order
 	createAt := time.Now().UTC()
 	checkout.Order.CreatedAt = createAt 
@@ -105,8 +120,32 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	}
 
 	//-----------------------------------------------------------
-	// Ordem Item SECTION
+	// Payment SECTION
 	//-----------------------------------------------------------
+	paymentRequest := external.PaymentRequest{
+		OrderID:       res_checkout.Order.ID,
+		OrderNumber:   res_checkout.Order.OrderNumber,
+		TransactionID: res_checkout.Order.Transaction,
+		Type:          checkout.Payment.Type,
+		Currency:      res_order.Currency,
+		Amount:        res_order.Amount,
+		CreditCard: &external.CreditCardRequest{
+			Pan:      checkout.Payment.CreditCard.Pan,
+			Holder:   checkout.Payment.CreditCard.Holder,
+			Password: checkout.Payment.CreditCard.Password,
+			CVV:      checkout.Payment.CreditCard.CVV,
+		},
+	}
+
+	res_payment, err := c.paymentModule.PaymentAdd(ctx, paymentRequest)
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutAdd failed in payment module", zap.Error(err))
+		return nil, err
+	}
+
+	res_checkout.Payment = *res_payment
+
+	logger.Info(ctx, "checkout usecase CheckoutAdd completed SUCCESSFULLY")
 
 	return res_checkout, nil
 }

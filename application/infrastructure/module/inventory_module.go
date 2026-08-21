@@ -61,6 +61,17 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return nil, err
 	}
+	
+	// Set headers for the request. the const are in payment_module.go file
+	headers := map[string]string{
+		ConnectionHeader:  KeepAlive,
+		AcceptHeader:      "application/json",
+		ContentTypeHeader: "application/json",
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
 	resp, err := im.client.Do(req.WithContext(ctxSpan))
 	if err != nil {
 		logger.Error(ctx, "Failed to perform request", zap.Error(err))
@@ -69,8 +80,15 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 	defer resp.Body.Close()
 
 	// Check for non-200 status codes
-	if resp.StatusCode != http.StatusOK {
-		logger.Error(ctx, "Inventory service returned non-OK status", zap.Int("status", resp.StatusCode))
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// Continue processing
+	case http.StatusNotFound:
+		logger.Error(ctx, "Inventory service returned 404 Not Found")
+		return nil, fmt.Errorf("inventory service returned status: %d", resp.StatusCode)
+	default:
+		logger.Error(ctx, "Inventory service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("inventory service returned status: %d", resp.StatusCode)
 	}
 

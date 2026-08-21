@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"go.uber.org/zap"
 
 	"go.opentelemetry.io/otel"
@@ -40,6 +41,9 @@ func (c *CheckoutController) CheckoutAdd(ctx context.Context, req external.Check
 			Password: req.CreditCardRequest.Password,
 			CVV:      req.CreditCardRequest.CVV,
 		}
+	} else {
+		logger.Error(ctx, "CreditCardRequest is nil in CheckoutRequest")
+		return nil, errors.New("CreditCard is not provided informed")
 	}
 
 	// Create the order entity
