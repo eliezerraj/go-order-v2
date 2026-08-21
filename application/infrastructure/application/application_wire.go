@@ -19,15 +19,17 @@ import (
 
 type Application struct {
 	OrderController *controller.OrderController
+	CheckoutController *controller.CheckoutController
 }
 
 type UseCase struct {
 	OrderUsecase usecase.IOrderUseCase
+	CheckoutUsecase usecase.ICheckoutUseCase
 }
 
 type Repository struct {
 	OrderRepository repository.IOrderRepository
-	//CheckoutRepository repository.ICheckoutRepository
+	CheckoutRepository repository.ICheckoutRepository
 }
 
 func NewApplication(cfg *config.Config) (*Application, error) {
@@ -80,7 +82,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 
 	// Repository initialization
 	orderRepository := repository.NewOrderRepository(dbConnector)
-	//checkoutRepository := repository.NewCheckoutRepository(dbConnector)
+	checkoutRepository := repository.NewCheckoutRepository(dbConnector)
 	
 	// Create the forwards modules.
 	httpConfig := &httpclient.HttpConfig{
@@ -93,20 +95,22 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 		ServiceName:         "go-inventory-v2",
 	}
 	invHttpClient := httpclient.NewHttpClient(httpConfig)
+	payHttpClient := httpclient.NewHttpClient(httpConfig)
 
 	// Create the inventory module.
 	inventoryModule := module.NewInventoryModule(cfg, invHttpClient)
+	paymentModule := module.NewPaymentModule(cfg, payHttpClient)
 
 	// UseCase initialization
 	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule)
-	//checkoutUsecase := usecase.NewCheckoutUseCase(checkoutRepository)
+	checkoutUsecase := usecase.NewCheckoutUseCase(checkoutRepository, paymentModule)
 
 	// Controller initialization
 	orderController := controller.NewOrderController(orderUsecase)
-	//checkoutController := controller.NewCheckoutController(checkoutUsecase)
+	checkoutController := controller.NewCheckoutController(checkoutUsecase)
 
 	return &Application{
 		OrderController: orderController,
-		//CheckoutController: checkoutController,
+		CheckoutController: checkoutController,
 	}, nil
 }
