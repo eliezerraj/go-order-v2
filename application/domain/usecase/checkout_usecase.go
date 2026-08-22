@@ -20,15 +20,14 @@ import (
 
 const (
 	// OrderStatusPending represents the pending status of an order.
-	CheckoutStatusPending = "pending"
-	// CheckoutStatusCompleted represents the completed status of an order.
-	CheckoutStatusCompleted = "completed"
+	CheckoutStatusPending = "checkout:pending"
 )
 
 type CheckoutUsecase struct {
 	orderRepository    repository.IOrderRepository
 	checkoutRepository repository.ICheckoutRepository
 	paymentModule     module.PaymentModule
+	inventoryModule   module.InventoryModule
 }
 
 type ICheckoutUseCase interface {
@@ -37,13 +36,14 @@ type ICheckoutUseCase interface {
 	CheckoutGet(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error)
 }
 
-func NewCheckoutUseCase(orderRepository repository.IOrderRepository, checkoutRepository repository.ICheckoutRepository, paymentModule module.PaymentModule) ICheckoutUseCase {
+func NewCheckoutUseCase(orderRepository repository.IOrderRepository, checkoutRepository repository.ICheckoutRepository, paymentModule module.PaymentModule, inventoryModule module.InventoryModule) ICheckoutUseCase {
 	logger.InfoOutCtx("initializing checkout usecase SUCCESSFULLY")
 
 	return &CheckoutUsecase{
 		orderRepository:    orderRepository,
 		checkoutRepository: checkoutRepository,
 		paymentModule:      paymentModule,
+		inventoryModule:    inventoryModule,
 	}
 }
 
@@ -91,15 +91,21 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	}()
 
 	//-----------------------------------------------------------
-	// Order/Inventory SECTION (get product price)
+	// Order SECTION - Check if the order exists in the repository
 	//-----------------------------------------------------------
-	
 	res_order, err := c.orderRepository.OrderGet(ctx, checkout.Order)
 	if err != nil {
 		logger.Error(ctx, "checkout usecase CheckoutAdd failed to get order", zap.Error(err))
 		return nil, err
 	}
 
+	res_order_itens, err := c.orderRepository.OrderItensGet(ctx, *res_order)
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutAdd failed to get order items", zap.Error(err))
+		return nil, err
+	}
+
+	res_order.OrderItem = res_order_itens
 	//-----------------------------------------------------------
 	// Checkout SECTION
 	//-----------------------------------------------------------
@@ -137,13 +143,36 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 		},
 	}
 
+	// Call the payment module to process the payment
 	res_payment, err := c.paymentModule.PaymentAdd(ctx, paymentRequest)
 	if err != nil {
 		logger.Error(ctx, "checkout usecase CheckoutAdd failed in payment module", zap.Error(err))
 		return nil, err
 	}
 
+	// Set the payment details in the checkout response
 	res_checkout.Payment = *res_payment
+
+	//-----------------------------------------------------------
+	// Inventory SECTION - Update Product Stock
+	//-----------------------------------------------------------
+	for _, item := range *res_order_itens {
+		// Call REST API to update product stock in the inventory module
+		inventory := &entity.Inventory{
+				Available: - item.Quantity,
+				Sold: item.Quantity,
+		}
+		item.Product.Inventory = inventory
+
+		err := c.inventoryModule.InventoryPatch(ctx, item.Product)
+		if err != nil {
+			logger.Error(ctx, "checkout usecase CheckoutAdd failed to update inventory", zap.Error(err))
+			return nil, err
+		}
+	}
+
+
+
 
 	logger.Info(ctx, "checkout usecase CheckoutAdd completed SUCCESSFULLY")
 

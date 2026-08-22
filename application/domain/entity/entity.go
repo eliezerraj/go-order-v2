@@ -44,7 +44,8 @@ type Product struct {
 	Type		string 		`json:"type,omitempty"`
 	Name		string 		`json:"name,omitempty"`
 	Status		string 		`json:"status,omitempty"`
-	Price		*Price		`json:"price,omitempty"`	
+	Price		*Price		`json:"price,omitempty"`
+	Inventory	*Inventory	`json:"inventory,omitempty"`	
 }
 
 type Price struct {
@@ -54,6 +55,13 @@ type Price struct {
 	Amount			float64		`json:"amount,omitempty"`
 	StartedAt		*time.Time 	`json:"started_at,omitempty"`
 	EndedAt			*time.Time 	`json:"ended_at,omitempty"`
+}
+
+type Inventory struct {
+	ID				int			`json:"id,omitempty"`
+	Available		int			`json:"available,omitempty"`
+	Pending			int			`json:"pending,omitempty"`
+	Sold			int			`json:"sold,omitempty"`	
 }
 
 type Checkout struct {

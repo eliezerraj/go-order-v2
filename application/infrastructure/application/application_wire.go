@@ -103,7 +103,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 
 	// UseCase initialization
 	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule)
-	checkoutUsecase := usecase.NewCheckoutUseCase(orderRepository, checkoutRepository, paymentModule)
+	checkoutUsecase := usecase.NewCheckoutUseCase(orderRepository, checkoutRepository, paymentModule, inventoryModule)
 
 	// Controller initialization
 	orderController := controller.NewOrderController(orderUsecase)

@@ -19,7 +19,7 @@ import (
 
 const (
 	// OrderStatusPending represents the pending status of an order.
-	OrderStatusPending = "pending"
+	OrderStatusPending = "order:pending"
 	// OrderStatusCompleted represents the completed status of an order.
 	OrderStatusCompleted = "completed"
 )

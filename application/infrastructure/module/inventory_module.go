@@ -1,6 +1,7 @@
 package module
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -100,4 +101,66 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
     }
 
     return &res.Product, nil
+}
+
+func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Product) error {
+	logger.Info(ctx, "inventory module InventoryPatch called")
+
+	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Inventory.Timeout)
+	defer cancel()
+
+	tracer := otel.Tracer("inventory.module")
+	ctxSpan, span := tracer.Start(ctxHttpTimeout, "InventoryModule.InventoryPatch")
+	defer span.End()
+
+	endpoint := fmt.Sprintf("%s%s/inventory/%d", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.ID)
+	method := "PATCH"
+
+	logger.Info(ctxSpan, "inventory module InventoryPatch request", zap.String("method", method), zap.String("endpoint", endpoint))
+
+	inventory := &entity.Inventory{
+		Available: product.Inventory.Available,
+		Sold:      product.Inventory.Sold,
+		Pending:   product.Inventory.Pending,
+	}
+	product.Inventory = inventory
+	payload := product
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		logger.Error(ctxSpan, "Failed to marshal payload", zap.Error(err))
+		return err
+	}
+
+	logger.Debug(ctxSpan, "inventory module InventoryPatch payload", zap.Any("payload", payload))
+
+	req, err := http.NewRequestWithContext(ctxSpan, method, endpoint, bytes.NewReader(payloadBytes))
+	if err != nil {
+		logger.Error(ctxSpan, "Failed to create request", zap.Error(err))
+		return err
+	}
+
+	headers := map[string]string{
+		ConnectionHeader:  KeepAlive,
+		AcceptHeader:      "application/json",
+		ContentTypeHeader: "application/json",
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := im.client.Do(req.WithContext(ctxSpan))
+	if err != nil {
+		logger.Error(ctxSpan, "Failed to perform request", zap.Error(err))
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Error(ctxSpan, "Inventory service returned unexpected status", zap.Int("status", resp.StatusCode))
+		return fmt.Errorf("inventory service returned status: %d", resp.StatusCode)
+	}
+
+	return nil
+
 }
