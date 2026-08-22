@@ -105,4 +105,7 @@ func (s *FiberServer) SetupRoutes(application *application.Application) {
 	appRoutes.Get("/echo-context", adapters.metadataAdp.ContextGet)
 	appRoutes.Get("/order/:order_number", middleware.MetricsMiddleware(adapters.applicationAdp.OrderGet))
 	appRoutes.Post("/order", middleware.MetricsMiddleware(adapters.applicationAdp.OrderAdd))
+
+	appRoutes.Get("/order/checkout/:order_number", middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutGet))
+	appRoutes.Post("/order/checkout", middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutAdd))
 }

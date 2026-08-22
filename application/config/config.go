@@ -74,6 +74,7 @@ type Config struct {
 	OtelEnv		OtelEnv
 	Authorization Authorization
 	Inventory   Inventory
+	Payment    Payment
 }
 
 type OtelEnv struct {
@@ -87,6 +88,12 @@ type Inventory struct {
 	Endpoint string        `env:"INVENTORY_ENDPOINT"`
 	UrlPath  string        `env:"INVENTORY_URL_PATH"`
 	Timeout  time.Duration `env:"INVENTORY_ENDPOINT_TIMEOUT"`
+}
+
+type Payment struct {
+	Endpoint string        `env:"PAYMENT_ENDPOINT"`
+	UrlPath  string        `env:"PAYMENT_URL_PATH"`
+	Timeout  time.Duration `env:"PAYMENT_ENDPOINT_TIMEOUT"`
 }
 
 func Load() (cfg *Config, err error) {
