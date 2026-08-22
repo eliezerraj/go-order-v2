@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	// OrderStatusPending represents the pending status of an order.
 	CheckoutStatusPending = "checkout:pending"
 )
 
@@ -106,32 +105,14 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	}
 
 	res_order.OrderItem = res_order_itens
-	//-----------------------------------------------------------
-	// Checkout SECTION
-	//-----------------------------------------------------------
-	// Business logic: Set default values for order
-	createAt := time.Now().UTC()
-	checkout.Order.CreatedAt = createAt 
-	if checkout.Order.Date == (time.Time{}) {
-		checkout.Order.Date = createAt
-	}
-	checkout.Order.Status = CheckoutStatusPending
-	checkout.Order.Transaction = "txn_" + checkout.Order.OrderNumber
-
-	// Add the order to the repository
-	res_checkout, err = c.checkoutRepository.CheckoutAdd(ctx, tx, checkout)
-	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutAdd failed", zap.Error(err))
-		return nil, err
-	}
 
 	//-----------------------------------------------------------
 	// Payment SECTION
 	//-----------------------------------------------------------
 	paymentRequest := external.PaymentRequest{
-		OrderID:       res_checkout.Order.ID,
-		OrderNumber:   res_checkout.Order.OrderNumber,
-		TransactionID: res_checkout.Order.Transaction,
+		OrderID:       res_order.ID,
+		OrderNumber:   res_order.OrderNumber,
+		TransactionID: res_order.Transaction,
 		Type:          checkout.Payment.Type,
 		Currency:      res_order.Currency,
 		Amount:        res_order.Amount,
@@ -149,9 +130,6 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 		logger.Error(ctx, "checkout usecase CheckoutAdd failed in payment module", zap.Error(err))
 		return nil, err
 	}
-
-	// Set the payment details in the checkout response
-	res_checkout.Payment = *res_payment
 
 	//-----------------------------------------------------------
 	// Inventory SECTION - Update Product Stock
@@ -171,12 +149,30 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 		}
 	}
 
+	//-----------------------------------------------------------
+	// Order SECTION - Update Status to "checkout:completed"
+	//-----------------------------------------------------------
+	createAt := time.Now().UTC()
+	res_order.UpdatedAt = &createAt
+	res_order.Status = CheckoutStatusPending
 
+	rowsAffected, err := c.orderRepository.OrderPut(ctx, tx, *res_order)
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutAdd failed to update order status", zap.Error(err))
+		return nil, err
+	}
+	if rowsAffected == 0 {
+		logger.Warn(ctx, "checkout usecase CheckoutAdd: no rows affected, order not found", zap.Int("order_id", res_order.ID))
+		return nil, nil
+	}
 
+	// Set the payment details in the checkout response
+	checkout.Payment = *res_payment
+	checkout.Order = *res_order
 
 	logger.Info(ctx, "checkout usecase CheckoutAdd completed SUCCESSFULLY")
 
-	return res_checkout, nil
+	return &checkout, nil
 }
 
 // CheckoutGet retrieves a checkout from the repository based on the provided checkout details.
