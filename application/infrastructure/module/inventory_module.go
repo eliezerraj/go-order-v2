@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"go.uber.org/zap"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/eliezerraj/go-core/v3/httpclient"
 	"github.com/eliezerraj/go-core/v3/logger"
@@ -16,7 +16,10 @@ import (
 	"github.com/go-order-v2/application/config"
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/domain/external"
+	"github.com/go-order-v2/application/tracing"
 )
+
+const RequestIDHeaderName = "x-request-id"
 
 type InventoryModule struct {
 	cfg *config.Config
@@ -33,14 +36,14 @@ func NewInventoryModule(cfg *config.Config, client	httpclient.IHTTPClient) Inven
 }
 
 func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Product) (*entity.Product, error) {
+	logger.Info(ctx, "inventory module GetInventory called")
+
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Inventory.Timeout)
 	defer cancel()
 
-	tracer := otel.Tracer("inventory.module")
-	ctxSpan, span := tracer.Start(ctxHttpTimeout, "InventoryModule.GetInventory")
+	// Trace
+	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "inventoryModule.GetInventory", trace.SpanKindInternal)
 	defer span.End()
-
-	logger.Info(ctx, "inventory module GetInventory called")
 
 	var endpoint string
 	method := "GET"
@@ -57,23 +60,31 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 
 	logger.Info(ctx, "inventory module GetInventory request", zap.String("method", method), zap.String("endpoint", endpoint))
 	
-	req, err := http.NewRequestWithContext(ctxSpan, method, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
 	if err != nil {
 		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return nil, err
 	}
 	
 	// Set headers for the request. the const are in payment_module.go file
+	xrequestid, ok := ctx.Value(RequestIDHeaderName).(string)
+	if !ok {
+		xrequestid = "not-informed"
+	}
+
 	headers := map[string]string{
 		ConnectionHeader:  KeepAlive,
 		AcceptHeader:      "application/json",
 		ContentTypeHeader: "application/json",
+		KeepAlive: "timeout=5, max=1000",
+		XResquestID: xrequestid,
 	}
+
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
 
-	resp, err := im.client.Do(req.WithContext(ctxSpan))
+	resp, err := im.client.Do(req.WithContext(ctx))
 	if err != nil {
 		logger.Error(ctx, "Failed to perform request", zap.Error(err))
 		return nil, err
@@ -109,14 +120,13 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Inventory.Timeout)
 	defer cancel()
 
-	tracer := otel.Tracer("inventory.module")
-	ctxSpan, span := tracer.Start(ctxHttpTimeout, "InventoryModule.InventoryPatch")
+	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "inventoryModule.InventoryPatch", trace.SpanKindInternal)
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s/inventory/%d", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.ID)
 	method := "PATCH"
 
-	logger.Info(ctxSpan, "inventory module InventoryPatch request", zap.String("method", method), zap.String("endpoint", endpoint))
+	logger.Info(ctx, "inventory module InventoryPatch request", zap.String("method", method), zap.String("endpoint", endpoint))
 
 	inventory := &entity.Inventory{
 		Available: product.Inventory.Available,
@@ -128,39 +138,47 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		logger.Error(ctxSpan, "Failed to marshal payload", zap.Error(err))
+		logger.Error(ctx, "Failed to marshal payload", zap.Error(err))
 		return err
 	}
 
-	logger.Debug(ctxSpan, "inventory module InventoryPatch payload", zap.Any("payload", payload))
+	logger.Debug(ctx, "inventory module InventoryPatch payload", zap.Any("payload", payload))
 
-	req, err := http.NewRequestWithContext(ctxSpan, method, endpoint, bytes.NewReader(payloadBytes))
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(payloadBytes))
 	if err != nil {
-		logger.Error(ctxSpan, "Failed to create request", zap.Error(err))
+		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return err
+	}
+
+	// Set headers for the request. the const are in payment_module.go file
+	xrequestid, ok := ctx.Value(RequestIDHeaderName).(string)
+	if !ok {
+		xrequestid = "not-informed"
 	}
 
 	headers := map[string]string{
 		ConnectionHeader:  KeepAlive,
 		AcceptHeader:      "application/json",
 		ContentTypeHeader: "application/json",
+		KeepAlive: "timeout=5, max=1000",
+		XResquestID: xrequestid,
 	}
+
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
 
-	resp, err := im.client.Do(req.WithContext(ctxSpan))
+	resp, err := im.client.Do(req.WithContext(ctx))
 	if err != nil {
-		logger.Error(ctxSpan, "Failed to perform request", zap.Error(err))
+		logger.Error(ctx, "Failed to perform request", zap.Error(err))
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Error(ctxSpan, "Inventory service returned unexpected status", zap.Int("status", resp.StatusCode))
+		logger.Error(ctx, "Inventory service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return fmt.Errorf("inventory service returned status: %d", resp.StatusCode)
 	}
 
 	return nil
-
 }

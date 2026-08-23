@@ -11,10 +11,11 @@ import (
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/jackc/pgx/v5"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -62,8 +63,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 	logger.Info(ctx, "order usecase OrderAdd called")
 
 	// Tracing
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderUsecase.OrderAdd")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderUsecase.OrderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -170,8 +170,7 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	logger.Info(ctx, "order usecase OrderGet called")
 
 	// Tracing
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderUsecase.OrderGet")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderUsecase.OrderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	// Get the order from the repository

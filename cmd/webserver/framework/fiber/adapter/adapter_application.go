@@ -8,13 +8,14 @@ import (
 	"github.com/go-order-v2/application/config"
 	"github.com/go-order-v2/application/infrastructure/application"
 	"github.com/go-order-v2/application/domain/external"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/http/utils"
 
 	"github.com/gofiber/fiber/v2"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ApplicationAdapter struct {
@@ -36,14 +37,13 @@ func (a *ApplicationAdapter) OrderGet(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	tracer := otel.Tracer("order.adapter")
-	ctx, span := tracer.Start(ctxWithTimeout, "ApplicationAdapter.OrderGet")
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.OrderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Info(ctx, "OrderGet called")
 
 	logger.Debug(
-		ctxWithTimeout,
+		ctx,
 		a.cfg.App.Name,
 		zap.ByteString("headers", utils.FormatHeadersAsJSON(ctxFiber.GetReqHeaders())),
 		zap.ByteString("query", ctxFiber.Request().URI().QueryString()),
@@ -59,10 +59,10 @@ func (a *ApplicationAdapter) OrderGet(ctxFiber *fiber.Ctx) error {
 		OrderNumber: order_number,
 	}
 
-	res, err := a.application.OrderController.OrderGet(ctxWithTimeout, order)
+	res, err := a.application.OrderController.OrderGet(ctx, order)
 	if err != nil {
-		logger.Error(ctxWithTimeout, "failed to get order ", zap.Error(err))
-		errorResponse := external.NewResponseError(ctxWithTimeout,
+		logger.Error(ctx, "failed to get order ", zap.Error(err))
+		errorResponse := external.NewResponseError(ctx,
 			fiber.StatusNotFound,
 			fiber.ErrNotFound,
 			fiber.ErrNotFound.Message,
@@ -84,10 +84,13 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	logger.Info(ctxWithTimeout, "OrderAdd called")
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.OrderAdd", trace.SpanKindInternal)
+	defer span.End()
+
+	logger.Info(ctx, "OrderAdd called")
 
 	logger.Debug(
-		ctxWithTimeout,
+		ctx,
 		a.cfg.App.Name,
 		zap.ByteString("headers", utils.FormatHeadersAsJSON(ctxFiber.GetReqHeaders())),
 		zap.ByteString("query", ctxFiber.Request().URI().QueryString()),
@@ -95,8 +98,8 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber *fiber.Ctx) error {
 	)
 	order := external.OrderRequest{}
 	if err := ctxFiber.BodyParser(&order); err != nil {
-		logger.Error(ctxWithTimeout, "failed to parse request body", zap.Error(err))
-		errorResponse := external.NewResponseError(ctxWithTimeout,
+		logger.Error(ctx, "failed to parse request body", zap.Error(err))
+		errorResponse := external.NewResponseError(ctx,
 			fiber.StatusBadRequest,
 			fiber.ErrBadRequest,
 			fiber.ErrBadRequest.Message,
@@ -106,10 +109,10 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber *fiber.Ctx) error {
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
-	res, err := a.application.OrderController.OrderAdd(ctxWithTimeout, order)
+	res, err := a.application.OrderController.OrderAdd(ctx, order)
 	if err != nil {
-		logger.Error(ctxWithTimeout, "failed to add order", zap.Error(err))
-		errorResponse := external.NewResponseError(ctxWithTimeout,
+		logger.Error(ctx, "failed to add order", zap.Error(err))
+		errorResponse := external.NewResponseError(ctx,
 			fiber.StatusInternalServerError,
 			fiber.ErrInternalServerError,
 			fiber.ErrInternalServerError.Message,
@@ -135,14 +138,13 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	tracer := otel.Tracer("checkout.adapter")
-	ctx, span := tracer.Start(ctxWithTimeout, "ApplicationAdapter.CheckoutGet")
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.CheckoutGet", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Info(ctx, "CheckoutGet called")
 
 	logger.Debug(
-		ctxWithTimeout,
+		ctx,
 		a.cfg.App.Name,
 		zap.ByteString("headers", utils.FormatHeadersAsJSON(ctxFiber.GetReqHeaders())),
 		zap.ByteString("query", ctxFiber.Request().URI().QueryString()),
@@ -158,10 +160,10 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber *fiber.Ctx) error {
 		OrderNumber: order_number,
 	}
 
-	res, err := a.application.CheckoutController.CheckoutGet(ctxWithTimeout, checkout)
+	res, err := a.application.CheckoutController.CheckoutGet(ctx, checkout)
 	if err != nil {
-		logger.Error(ctxWithTimeout, "failed to get checkout ", zap.Error(err))
-		errorResponse := external.NewResponseError(ctxWithTimeout,
+		logger.Error(ctx, "failed to get checkout ", zap.Error(err))
+		errorResponse := external.NewResponseError(ctx,
 			fiber.StatusNotFound,
 			fiber.ErrNotFound,
 			fiber.ErrNotFound.Message,
@@ -183,10 +185,13 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	logger.Info(ctxWithTimeout, "CheckoutAdd called")
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.CheckoutAdd", trace.SpanKindInternal)
+	defer span.End()
+
+	logger.Info(ctx, "CheckoutAdd called")
 
 	logger.Debug(
-		ctxWithTimeout,
+		ctx,
 		a.cfg.App.Name,
 		zap.ByteString("headers", utils.FormatHeadersAsJSON(ctxFiber.GetReqHeaders())),
 		zap.ByteString("query", ctxFiber.Request().URI().QueryString()),
@@ -195,8 +200,8 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber *fiber.Ctx) error {
 
 	checkout := external.CheckoutRequest{}
 	if err := ctxFiber.BodyParser(&checkout); err != nil {
-		logger.Error(ctxWithTimeout, "failed to parse request body", zap.Error(err))
-		errorResponse := external.NewResponseError(ctxWithTimeout,
+		logger.Error(ctx, "failed to parse request body", zap.Error(err))
+		errorResponse := external.NewResponseError(ctx,
 			fiber.StatusBadRequest,
 			fiber.ErrBadRequest,
 			fiber.ErrBadRequest.Message,
@@ -206,10 +211,10 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber *fiber.Ctx) error {
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
-	res, err := a.application.CheckoutController.CheckoutAdd(ctxWithTimeout, checkout)
+	res, err := a.application.CheckoutController.CheckoutAdd(ctx, checkout)
 	if err != nil {
-		logger.Error(ctxWithTimeout, "failed to add checkout", zap.Error(err))
-		errorResponse := external.NewResponseError(ctxWithTimeout,
+		logger.Error(ctx, "failed to add checkout", zap.Error(err))
+		errorResponse := external.NewResponseError(ctx,
 			fiber.StatusInternalServerError,
 			fiber.ErrInternalServerError,
 			fiber.ErrInternalServerError.Message,

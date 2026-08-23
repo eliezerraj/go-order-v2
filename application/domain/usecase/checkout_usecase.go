@@ -12,10 +12,11 @@ import (
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/jackc/pgx/v5"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -63,9 +64,8 @@ func (c *CheckoutUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.
 func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Checkout) (res_checkout *entity.Checkout, err error) {
 	logger.Info(ctx, "checkout usecase CheckoutAdd called")
 
-	// Tracing
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "CheckoutUsecase.CheckoutAdd")
+	// Tracing and metrics
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -177,11 +177,11 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 
 // CheckoutGet retrieves a checkout from the repository based on the provided checkout details.
 func (c *CheckoutUsecase) CheckoutGet(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error) {
-	tracer := otel.Tracer("checkout.repository")
-	ctx, span := tracer.Start(ctx, "CheckoutUsecase.CheckoutGet")
-	defer span.End()
-
 	logger.Info(ctx, "checkout usecase CheckoutGet called")
+
+	// Tracing.
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutGet", trace.SpanKindInternal)
+	defer span.End()
 
 	// Get the order from the repository
 	res_checkout, err := c.checkoutRepository.CheckoutGet(ctx, checkout)

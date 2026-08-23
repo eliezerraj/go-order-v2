@@ -5,14 +5,15 @@ import (
 	"time"
 	"go.uber.org/zap"
 
-	"go.opentelemetry.io/otel"
-
 	"github.com/eliezerraj/go-core/v3/logger"
 	
 	"github.com/go-order-v2/application/domain/usecase"
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/shared/helpers"
+	"github.com/go-order-v2/application/tracing"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 type OrderController struct {
@@ -28,11 +29,10 @@ func NewOrderController(orderUseCase usecase.IOrderUseCase) *OrderController {
 }
 
 func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderRequest) (*entity.Order, error) {
-	tracer := otel.Tracer("order.controller")
-	ctx, span := tracer.Start(ctx, "OrderController.OrderAdd")
-	defer span.End()
-
 	logger.Info(ctx, "order controller OrderAdd called")
+
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderController.OrderAdd", trace.SpanKindInternal)
+	defer span.End()
 
 	var orderDate time.Time
 	if req.Date != "" {
@@ -82,11 +82,10 @@ func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderReques
 }
 
 func (o *OrderController) OrderGet(ctx context.Context, req external.OrderRequest) (*entity.Order, error) {
-	tracer := otel.Tracer("order.controller")
-	ctx, span := tracer.Start(ctx, "OrderController.OrderGet")
-	defer span.End()
-
 	logger.Info(ctx, "order controller OrderGet called", zap.String("order_number", req.OrderNumber))
+	
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderController.OrderGet", trace.SpanKindInternal)
+	defer span.End()
 
 	order := entity.Order{
 		OrderNumber: req.OrderNumber,

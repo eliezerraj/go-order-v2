@@ -9,12 +9,13 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/go-order-v2/application/domain/entity"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/database/connector"
 
 	"go.opentelemetry.io/otel"
-
+	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/attribute"
@@ -53,9 +54,8 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 	logger.Info(ctx, "checkout repository CheckoutGet called")
 
 	// Tracing and metrics
-	tracer := otel.Tracer("order.repository")
-    ctx, span := tracer.Start(ctx, "CheckoutRepository.CheckoutGet")
-    defer span.End()
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutRepository.CheckoutGet", trace.SpanKindInternal)
+	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
     counter, _ := meter.Int64Counter("db_custom_checkout_get_requests_total")

@@ -9,12 +9,13 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/go-order-v2/application/domain/entity"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/database/connector"
 
+	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel"
-
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/attribute"
@@ -57,9 +58,8 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res
 	logger.Info(ctx, "order repository OrderGet called")
 
 	// Tracing and metrics
-	tracer := otel.Tracer("order.repository")
-    ctx, span := tracer.Start(ctx, "OrderRepository.OrderGet")
-    defer span.End()
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderGet", trace.SpanKindInternal)
+	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
     counter, _ := meter.Int64Counter("db_custom_order_get_requests_total")
@@ -123,8 +123,7 @@ func (p *OrderRepository) OrderItensGet(ctx context.Context, order entity.Order)
 	logger.Info(ctx, "order repository OrderItensGet called")
 
 	// Tracing and metrics
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderRepository.OrderItensGet")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderItensGet", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -190,10 +189,9 @@ func (p *OrderRepository) OrderAdd(ctx context.Context, tx pgx.Tx, order entity.
 	logger.Info(ctx, "order repository OrderAdd called")
 
 	// Tracing and metrics
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderRepository.OrderAdd")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderAdd", trace.SpanKindInternal)
 	defer span.End()
-	
+
 	meter := otel.Meter("go-order-v2.repository")
     counter, _ := meter.Int64Counter("db_custom_order_add_requests_total")
     histogram, _ := meter.Float64Histogram("db_custom_order_add_duration_seconds")
@@ -241,8 +239,7 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem
 	logger.Info(ctx, "order repository OrderItemAdd called", zap.Any("order_item", orderItem))
 
 	// Tracing and metrics
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderRepository.OrderItemAdd")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderItemAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -292,8 +289,7 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 	logger.Info(ctx, "order repository OrderPut called")
 
 	// Tracing and metrics
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderRepository.OrderPut")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderPut", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
