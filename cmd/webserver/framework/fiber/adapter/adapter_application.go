@@ -37,7 +37,7 @@ func (a *ApplicationAdapter) OrderGet(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.OrderGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.orderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Info(ctx, "OrderGet called")
@@ -84,7 +84,7 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.OrderAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.orderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Info(ctx, "OrderAdd called")
@@ -138,7 +138,7 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.CheckoutGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.checkoutGet", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Info(ctx, "CheckoutGet called")
@@ -185,7 +185,7 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.CheckoutAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.checkoutAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Info(ctx, "CheckoutAdd called")
