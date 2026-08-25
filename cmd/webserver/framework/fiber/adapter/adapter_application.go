@@ -157,7 +157,9 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber *fiber.Ctx) error {
 	}
 
 	checkout := external.CheckoutRequest{
-		OrderNumber: order_number,
+		Order: external.OrderRequest{
+			OrderNumber: order_number,
+		},
 	}
 
 	res, err := a.application.CheckoutController.CheckoutGet(ctx, checkout)

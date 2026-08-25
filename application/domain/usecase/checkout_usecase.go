@@ -90,7 +90,7 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	}()
 
 	//-----------------------------------------------------------
-	// Order SECTION - Check if the order exists in the repository
+	// Order SECTION - Check if the order and order itens exists
 	//-----------------------------------------------------------
 	res_order, err := c.orderRepository.OrderGet(ctx, checkout.Order)
 	if err != nil {
@@ -104,24 +104,43 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 		return nil, err
 	}
 
+	// Set the order items in the order response
 	res_order.OrderItem = res_order_itens
 
 	//-----------------------------------------------------------
 	// Payment SECTION
 	//-----------------------------------------------------------
+
+	orderReq := external.OrderRequest{
+		ID: res_order.ID,
+		OrderNumber:  res_order.OrderNumber,
+	}
+
+	// Create a list of 1 payment
+	listPaymentDetailsReq := make([]*external.PaymentDetailRequest, 1)
+
+	for i := range listPaymentDetailsReq {
+		paymentDetailReq := &external.PaymentDetailRequest{}
+		creditCardRed := external.CreditCardRequest{
+			Pan:            checkout.Payment.CreditCard.Pan,
+			Holder:         checkout.Payment.CreditCard.Holder,
+			Password:       checkout.Payment.CreditCard.Password,
+			CVV:            checkout.Payment.CreditCard.CVV,
+		}
+
+		paymentDetailReq.Currency = checkout.Payment.Currency
+		paymentDetailReq.Amount = checkout.Payment.Amount
+		paymentDetailReq.DetailDate = time.Now().UTC()
+		paymentDetailReq.CreditCard = &creditCardRed
+
+		listPaymentDetailsReq[i] = paymentDetailReq
+	}
+
 	paymentRequest := external.PaymentRequest{
-		OrderID:       res_order.ID,
-		OrderNumber:   res_order.OrderNumber,
 		TransactionID: res_order.Transaction,
-		Type:          checkout.Payment.Type,
-		Currency:      res_order.Currency,
-		Amount:        res_order.Amount,
-		CreditCard: &external.CreditCardRequest{
-			Pan:      checkout.Payment.CreditCard.Pan,
-			Holder:   checkout.Payment.CreditCard.Holder,
-			Password: checkout.Payment.CreditCard.Password,
-			CVV:      checkout.Payment.CreditCard.CVV,
-		},
+		Type:	checkout.Payment.Type,
+		Order: orderReq,
+		PaymentDetail: listPaymentDetailsReq,
 	}
 
 	// Call the payment module to process the payment

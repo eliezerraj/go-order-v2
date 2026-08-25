@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../../go-inventory-v2"
+		},
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../go-payment-v2"
+		},
+		{
+			"path": "../../../db-migration"
+		}
+	]
+}
