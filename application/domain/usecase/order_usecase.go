@@ -9,12 +9,14 @@ import (
 	"github.com/eliezerraj/go-core/v3/logger"
 
 	"github.com/go-order-v2/application/domain/entity"
+	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/jackc/pgx/v5"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -27,6 +29,7 @@ const (
 type OrderUsecase struct {
 	orderRepository repository.IOrderRepository
 	inventoryModule module.InventoryModule
+	paymentModule    module.PaymentModule
 }
 
 type IOrderUseCase interface {
@@ -35,12 +38,13 @@ type IOrderUseCase interface {
 	OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error)
 }
 
-func NewOrderUseCase(orderRepository repository.IOrderRepository, inventoryModule module.InventoryModule) IOrderUseCase {
+func NewOrderUseCase(orderRepository repository.IOrderRepository, inventoryModule module.InventoryModule, paymentModule module.PaymentModule) IOrderUseCase {
 	logger.InfoOutCtx("initializing order usecase SUCCESSFULLY")
 
 	return &OrderUsecase{
 		orderRepository: orderRepository,
 		inventoryModule: inventoryModule,
+		paymentModule:    paymentModule,
 	}
 }
 
@@ -62,8 +66,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 	logger.Info(ctx, "order usecase OrderAdd called")
 
 	// Tracing
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderUsecase.OrderAdd")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderUsecase.OrderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -170,8 +173,7 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	logger.Info(ctx, "order usecase OrderGet called")
 
 	// Tracing
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "OrderUsecase.OrderGet")
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderUsecase.OrderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	// Get the order from the repository
@@ -199,6 +201,21 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	}
 
 	res_order.OrderItem = res_order_itens
+
+	// Get payment details from go-payment module for the order
+	paymentRequest := external.PaymentRequest{
+		PaymentNumber: res_order.Transaction,
+	}
+	res_payment, err := o.paymentModule.PaymentGet(ctx, paymentRequest)
+	if err != nil {
+		logger.Error(ctx, "order usecase OrderGet failed to get payment details", zap.Error(err))
+		//return nil, err
+	}
+	_ = res_payment
+	// Set the payment details in the order response
+	//res_order.Payment = &[]entity.PaymentCheckout{*res_payment}
+
+	logger.Info(ctx, "order usecase OrderGet completed SUCCESSFULLY")
 
 	return res_order, nil
 }

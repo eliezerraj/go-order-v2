@@ -1,13 +1,18 @@
 package external
 
+import ( 
+	"time"
+)
+
 import (
 	"github.com/go-order-v2/application/domain/entity"
 )
 
 type OrderRequest struct {
-	OrderNumber		string		`json:"order_number,omitempty"`
+	ID				int		`json:"id,omitempty"`
+	OrderNumber		string	`json:"order_number,omitempty"`
 	Date			string	`json:"order_date,omitempty"`
-	CustomerID		string		`json:"customer_id,omitempty"`
+	CustomerID		string	`json:"customer_id,omitempty"`
 	OrderItem		[]*OrderItemRequest	`json:"order_item,omitempty"`
 }
 
@@ -22,11 +27,6 @@ type ProductRequest struct {
 	Price		*PriceRequest	`json:"price,omitempty"`
 }
 
-type CheckoutRequest struct {
-	OrderNumber		string		`json:"order_number,omitempty"`
-	CreditCardRequest	*CreditCardRequest	`json:"credit_card,omitempty"`
-}
-	
 type PriceRequest struct {
 	Currency		string		`json:"currency,omitempty"`
 	Amount			float64		`json:"amount,omitempty"`	
@@ -42,21 +42,27 @@ type InventoryResponse struct {
     Product  entity.Product `json:"product"`
 }
 
-type CheckoutResponse struct {
-    Response string         `json:"response"`
-    Checkout  any `json:"checkout"`
+type CheckoutRequest struct {
+	Order		OrderRequest		`json:"order,omitempty"`
+	Payment		PaymentRequest		`json:"payment,omitempty"`
 }
 
 type PaymentRequest struct {
-	OrderID			int		`json:"order_id,omitempty"`
-	OrderNumber		string	`json:"order_number,omitempty"`
 	PaymentNumber 	string	`json:"payment_number,omitempty"`
 	TransactionID	string	`json:"transaction_id,omitempty"`
 	Type			string	`json:"type,omitempty"`
-	Currency		string	`json:"currency,omitempty"`
-	Amount			float64	`json:"amount,omitempty"`
-	CreditCard		*CreditCardRequest	`json:"credit_card,omitempty"`
+	Order			OrderRequest	`json:"order,omitempty"`
+	PaymentDetail	[]*PaymentDetailRequest	`json:"payment_detail,omitempty"`
 }
+
+type PaymentDetailRequest struct {
+	DetailDate	time.Time 	`json:"payment_detail_date,omitempty"`
+	Status		string 		`json:"status,omitempty"`
+	Currency	string 		`json:"currency,omitempty"`
+	Amount		float64 	`json:"amount,omitempty"`
+	CreditCard	*CreditCardRequest	`json:"credit_card,omitempty"`
+}
+
 type CreditCardRequest struct {
 	Pan		string	`json:"pan,omitempty"`
 	Holder	string	`json:"holder,omitempty"`
@@ -66,5 +72,10 @@ type CreditCardRequest struct {
 
 type PaymentResponse struct {
 	Response    string	`json:"response"`
-	Payment		entity.Payment	`json:"payment,omitempty"`
+	Payment		entity.PaymentCheckout	`json:"payment,omitempty"`
+}
+
+type CheckoutResponse struct {
+    Response string         `json:"response"`
+    Checkout  any `json:"checkout"`
 }

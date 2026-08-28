@@ -2,16 +2,16 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"go.uber.org/zap"
-
-	"go.opentelemetry.io/otel"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	
 	"github.com/go-order-v2/application/domain/usecase"
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/domain/entity"
+	"github.com/go-order-v2/application/tracing"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 type CheckoutController struct {
@@ -27,32 +27,42 @@ func NewCheckoutController(checkoutUseCase usecase.ICheckoutUseCase) *CheckoutCo
 }
 
 func (c *CheckoutController) CheckoutAdd(ctx context.Context, req external.CheckoutRequest) (*entity.Checkout, error) {
-	tracer := otel.Tracer("checkout.controller")
-	ctx, span := tracer.Start(ctx, "CheckoutController.CheckoutAdd")
-	defer span.End()
-
 	logger.Info(ctx, "checkout controller CheckoutAdd called")
 
-	var payment entity.Payment
-	if req.CreditCardRequest != nil {
-		payment.CreditCard = &entity.CreditCard{
-			Pan:      req.CreditCardRequest.Pan,
-			Holder:   req.CreditCardRequest.Holder,
-			Password: req.CreditCardRequest.Password,
-			CVV:      req.CreditCardRequest.CVV,
-		}
-	} else {
-		logger.Error(ctx, "CreditCardRequest is nil in CheckoutRequest")
-		return nil, errors.New("CreditCard is not provided informed")
+	// Trace
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutAdd", trace.SpanKindInternal)
+	defer span.End()
+
+	payment := entity.PaymentCheckout{
+		PaymentNumber: req.Payment.PaymentNumber,
+		TransactionID: req.Payment.TransactionID,
+		Type:          req.Payment.Type,     
 	}
+
+	var amount float64
+	for _, item := range req.Payment.PaymentDetail {
+		payment.CreditCard = &entity.CreditCard{
+			Pan:      item.CreditCard.Pan,
+			Holder:   item.CreditCard.Holder,
+			Password: item.CreditCard.Password,
+			CVV:      item.CreditCard.CVV,
+		}
+		amount += item.Amount
+	}
+
+	payment.Currency = req.Payment.PaymentDetail[0].Currency
+	payment.Amount = amount
 
 	// Create the order entity
 	checkout := entity.Checkout{
 		Order: entity.Order{
-			OrderNumber: req.OrderNumber,
+			ID: req.Order.ID,
+			OrderNumber: req.Order.OrderNumber,
 		},
 		Payment: payment,
 	}
+
+	logger.Debug(ctx,"===>checkout controller CheckoutAdd request",	zap.Any("checkout", checkout))
 
 	// Call the use case to add the order
 	res, err := c.checkoutUseCase.CheckoutAdd(ctx, checkout)
@@ -65,15 +75,14 @@ func (c *CheckoutController) CheckoutAdd(ctx context.Context, req external.Check
 }
 
 func (c *CheckoutController) CheckoutGet(ctx context.Context, req external.CheckoutRequest) (*entity.Checkout, error) {
-	tracer := otel.Tracer("checkout.controller")
-	ctx, span := tracer.Start(ctx, "CheckoutController.CheckoutGet")
-	defer span.End()
+	logger.Info(ctx, "checkout controller CheckoutGet called", zap.Any("order", req.Order))
 
-	logger.Info(ctx, "checkout controller CheckoutGet called", zap.String("order_number", req.OrderNumber))
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutGet", trace.SpanKindInternal)
+	defer span.End()
 
 	checkout := entity.Checkout{
 		Order: entity.Order{
-			OrderNumber: req.OrderNumber,
+			OrderNumber: req.Order.OrderNumber,
 		},
 	}
 

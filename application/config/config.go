@@ -73,8 +73,21 @@ type Config struct {
 	Log         Log
 	OtelEnv		OtelEnv
 	Authorization Authorization
+	KafkaConsumer KafkaConsumer
 	Inventory   Inventory
 	Payment    Payment
+}
+
+type KafkaConsumer struct {
+	BrokerList string `env:"KAFKA_CONSUMER_BROKER" envSeparator:","`
+	Topic      string   `env:"KAFKA_CONSUMER_TOPIC"`
+	Protocol   string   `env:"KAFKA_CONSUMER_PROTOCOL"`
+	Mechanism  string   `env:"KAFKA_CONSUMER_MECHANISM"`
+	Username   string   `env:"KAFKA_CONSUMER_USERNAME"`
+	Password   string   `env:"KAFKA_CONSUMER_PASSWORD"`
+	Name       string   `env:"KAFKA_CONSUMER_NAME"`
+	GroupID    string   `env:"KAFKA_CONSUMER_GROUP_ID"`
+	DryRun	   bool     `env:"KAFKA_EVENT_DRY_RUN" envDefault:"false"`
 }
 
 type OtelEnv struct {

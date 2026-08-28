@@ -92,7 +92,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 		MaxIdleConns:        cfg.HTTP.MaxIdleConns,
 		MaxIdleConnsPerHost: cfg.HTTP.MaxIdleConnsPerHost,
 		MaxConnsPerHost:     cfg.HTTP.MaxConnsPerHost,
-		ServiceName:         "go-inventory-v2",
+		ServiceName:         cfg.App.Name,
 	}
 	invHttpClient := httpclient.NewHttpClient(httpConfig)
 	payHttpClient := httpclient.NewHttpClient(httpConfig)
@@ -102,7 +102,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	paymentModule := module.NewPaymentModule(cfg, payHttpClient)
 
 	// UseCase initialization
-	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule)
+	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule, paymentModule)
 	checkoutUsecase := usecase.NewCheckoutUseCase(orderRepository, checkoutRepository, paymentModule, inventoryModule)
 
 	// Controller initialization

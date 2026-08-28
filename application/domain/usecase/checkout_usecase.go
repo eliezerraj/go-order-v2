@@ -12,10 +12,11 @@ import (
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/jackc/pgx/v5"
 
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -63,9 +64,8 @@ func (c *CheckoutUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.
 func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Checkout) (res_checkout *entity.Checkout, err error) {
 	logger.Info(ctx, "checkout usecase CheckoutAdd called")
 
-	// Tracing
-	tracer := otel.Tracer("order.repository")
-	ctx, span := tracer.Start(ctx, "CheckoutUsecase.CheckoutAdd")
+	// Tracing and metrics
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -90,7 +90,7 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	}()
 
 	//-----------------------------------------------------------
-	// Order SECTION - Check if the order exists in the repository
+	// Order SECTION - Check if the order and order itens exists
 	//-----------------------------------------------------------
 	res_order, err := c.orderRepository.OrderGet(ctx, checkout.Order)
 	if err != nil {
@@ -104,24 +104,43 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 		return nil, err
 	}
 
+	// Set the order items in the order response
 	res_order.OrderItem = res_order_itens
 
 	//-----------------------------------------------------------
 	// Payment SECTION
 	//-----------------------------------------------------------
+
+	orderReq := external.OrderRequest{
+		ID: res_order.ID,
+		OrderNumber:  res_order.OrderNumber,
+	}
+
+	// Create a list of 1 payment
+	listPaymentDetailsReq := make([]*external.PaymentDetailRequest, 1)
+
+	for i := range listPaymentDetailsReq {
+		paymentDetailReq := &external.PaymentDetailRequest{}
+		creditCardRed := external.CreditCardRequest{
+			Pan:            checkout.Payment.CreditCard.Pan,
+			Holder:         checkout.Payment.CreditCard.Holder,
+			Password:       checkout.Payment.CreditCard.Password,
+			CVV:            checkout.Payment.CreditCard.CVV,
+		}
+
+		paymentDetailReq.Currency = checkout.Payment.Currency
+		paymentDetailReq.Amount = checkout.Payment.Amount
+		paymentDetailReq.DetailDate = time.Now().UTC()
+		paymentDetailReq.CreditCard = &creditCardRed
+
+		listPaymentDetailsReq[i] = paymentDetailReq
+	}
+
 	paymentRequest := external.PaymentRequest{
-		OrderID:       res_order.ID,
-		OrderNumber:   res_order.OrderNumber,
 		TransactionID: res_order.Transaction,
-		Type:          checkout.Payment.Type,
-		Currency:      res_order.Currency,
-		Amount:        res_order.Amount,
-		CreditCard: &external.CreditCardRequest{
-			Pan:      checkout.Payment.CreditCard.Pan,
-			Holder:   checkout.Payment.CreditCard.Holder,
-			Password: checkout.Payment.CreditCard.Password,
-			CVV:      checkout.Payment.CreditCard.CVV,
-		},
+		Type:	checkout.Payment.Type,
+		Order: orderReq,
+		PaymentDetail: listPaymentDetailsReq,
 	}
 
 	// Call the payment module to process the payment
@@ -177,11 +196,11 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 
 // CheckoutGet retrieves a checkout from the repository based on the provided checkout details.
 func (c *CheckoutUsecase) CheckoutGet(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error) {
-	tracer := otel.Tracer("checkout.repository")
-	ctx, span := tracer.Start(ctx, "CheckoutUsecase.CheckoutGet")
-	defer span.End()
-
 	logger.Info(ctx, "checkout usecase CheckoutGet called")
+
+	// Tracing.
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutGet", trace.SpanKindInternal)
+	defer span.End()
 
 	// Get the order from the repository
 	res_checkout, err := c.checkoutRepository.CheckoutGet(ctx, checkout)
