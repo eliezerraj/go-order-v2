@@ -12,6 +12,7 @@ import (
 	stdLog "log"
 
 	"github.com/go-order-v2/cmd/webserver"
+	"github.com/go-order-v2/cmd/worker"
 	"github.com/go-order-v2/application/config"
 
 	"github.com/eliezerraj/go-core/v3/logger"
@@ -135,11 +136,18 @@ func main() {
 	signal.Notify(stopSignal, os.Interrupt, syscall.SIGTERM)
 
 	// Determine the command type and execute the corresponding process
-	cmd := getCmd("COMMAND_TYPE", "webserver")
+	cmd := getCmd("COMMAND_TYPE", "worker")
 
 	switch cmd {
 	case "worker":
-		logger.InfoOutCtx("worker process NOT implemented")
+		logger.InfoOutCtx("starting worker process")
+
+		webServer := webserver.NewWebServer(cfg)
+		go webServer.Run()
+
+		go worker.Run(cfg.KafkaConsumer)
+
+		<-stopSignal
 	case "webserver":
 		logger.InfoOutCtx("starting webserver process")
 		
