@@ -12,6 +12,7 @@ type OrderRequest struct {
 	ID				int		`json:"id,omitempty"`
 	OrderNumber		string	`json:"order_number,omitempty"`
 	Date			string	`json:"order_date,omitempty"`
+	Status			string	`json:"status,omitempty"`
 	CustomerID		string	`json:"customer_id,omitempty"`
 	OrderItem		[]*OrderItemRequest	`json:"order_item,omitempty"`
 }
@@ -48,6 +49,7 @@ type CheckoutRequest struct {
 }
 
 type PaymentRequest struct {
+	ID				int		`json:"id,omitempty"`
 	PaymentNumber 	string	`json:"payment_number,omitempty"`
 	TransactionID	string	`json:"transaction_id,omitempty"`
 	Type			string	`json:"type,omitempty"`
@@ -56,6 +58,7 @@ type PaymentRequest struct {
 }
 
 type PaymentDetailRequest struct {
+	ID				int		`json:"id,omitempty"`
 	DetailDate	time.Time 	`json:"payment_detail_date,omitempty"`
 	Status		string 		`json:"status,omitempty"`
 	Currency	string 		`json:"currency,omitempty"`

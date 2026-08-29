@@ -31,6 +31,7 @@ type IOrderRepository interface {
 	OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error)
 	OrderPut(ctx context.Context, tx pgx.Tx, order entity.Order) (int64, error)
 	OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (*entity.OrderItem, error)
+	OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (int64, error)
 	OrderItensGet(ctx context.Context, order entity.Order) (*[]entity.OrderItem, error)
 }
 
@@ -327,6 +328,54 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 	rowsAffected = row.RowsAffected()
 	if rowsAffected == 0 {
 		logger.Warn(ctx, "order repository OrderPut: no rows affected, order not found", zap.Int("order_id", order.ID))
+		return 0, nil
+	}
+
+	return rowsAffected, nil
+}
+
+func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (rowsAffected int64, err error) {
+	logger.Info(ctx, "order repository OrderItemPut called")
+
+	// Tracing and metrics
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderItemPut", trace.SpanKindInternal)
+	defer span.End()
+
+	meter := otel.Meter("go-order-v2.repository")
+	counter, _ := meter.Int64Counter("db_custom_order_item_put_requests_total")
+	histogram, _ := meter.Float64Histogram("db_custom_order_item_put_duration_seconds")
+	start := time.Now()
+
+	counter.Add(ctx, 1, metric.WithAttributes(
+        attribute.String("operation", "OrderItemPut"),
+    ))
+
+	// Defer function to handle error logging and metrics recording
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			logger.Error(ctx, "order repository OrderItemPut failed", zap.Error(err))
+		}
+		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
+			attribute.String("operation", "OrderItemPut"),
+		))
+	}()
+
+	query := `UPDATE public.order_item
+				SET status = $1,
+					updated_at = $2
+				WHERE id = $3
+				RETURNING id`
+
+	row, err := tx.Exec(ctx, query, orderItem.Status, orderItem.UpdatedAt, orderItem.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected = row.RowsAffected()
+	if rowsAffected == 0 {
+		logger.Warn(ctx, "order repository OrderItemPut: no rows affected, order item not found", zap.Int("order_item_id", orderItem.ID))
 		return 0, nil
 	}
 

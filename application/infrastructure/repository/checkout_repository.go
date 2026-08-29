@@ -4,6 +4,7 @@ import (
 	"time"
 	"context"
 	"errors"
+
 	"go.uber.org/zap"
 
 	"github.com/jackc/pgx/v5"
@@ -28,6 +29,7 @@ type CheckoutRepository struct {
 type ICheckoutRepository interface {
 	BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error)
 	CheckoutGet(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error)
+	CheckoutPut(ctx context.Context, tx pgx.Tx, checkout entity.Checkout) (int64, error)
 }
 
 func NewCheckoutRepository(dbConnector connector.IDatabaseConnector) ICheckoutRepository {
@@ -113,4 +115,53 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 	}
 
 	return &checkout, nil
+}
+
+func (p *CheckoutRepository) CheckoutPut(ctx context.Context, tx pgx.Tx, checkout entity.Checkout) (rowsAffected int64, err error) {
+	logger.Info(ctx, "checkout repository CheckoutPut called" , zap.Any("checkout", checkout))
+
+	// Tracing and metrics
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutRepository.CheckoutPut", trace.SpanKindInternal)
+	defer span.End()
+
+    meter := otel.Meter("go-order-v2.repository")
+    counter, _ := meter.Int64Counter("db_custom_checkout_put_requests_total")
+    histogram, _ := meter.Float64Histogram("db_custom_checkout_put_duration_seconds")
+    start := time.Now()
+
+    counter.Add(ctx, 1, metric.WithAttributes(
+        attribute.String("operation", "CheckoutPut"),
+    ))
+
+	// Defer function to handle error logging and metrics recording	
+	defer func() {
+		if err != nil {
+			span.RecordError(err) 
+			span.SetStatus(codes.Error, err.Error())
+			logger.Error(ctx, "checkout repository CheckoutPut failed", zap.Error(err))
+		}
+        histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
+            attribute.String("operation", "CheckoutPut"),
+        ))
+	}()
+
+	// Example update query (adjust according to your schema)
+	query := `update public.order 
+					set status = $1, 
+					updated_at = $2 
+					where order_number = $3
+					returning id, order_number, transaction_id, order_date, status, currency, amount, customer_id, created_at, updated_at`
+
+	row, err := tx.Exec(ctx, query, checkout.Order.Status, checkout.Order.UpdatedAt, checkout.Order.OrderNumber)
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected = row.RowsAffected()
+	if rowsAffected == 0 {
+		logger.Warn(ctx, "checkout repository CheckoutPut: no rows affected, order not found", zap.String("order_number", checkout.Order.OrderNumber))
+		return 0, nil
+	}
+
+	return rowsAffected, nil
 }
