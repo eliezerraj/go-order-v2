@@ -102,3 +102,11 @@ type PaymentDetail struct {
 	CreatedAt	time.Time 	`json:"created_at,omitempty"`
 	UpdatedAt	*time.Time 	`json:"updated_at,omitempty"`
 }
+
+type Event struct {
+	ID			string		`json:"event_id,omitempty"`
+	Date		time.Time	`json:"event_date,omitempty"`
+	Type		string		`json:"event_type,omitempty"`
+	Metadata	map[string]interface{}	`json:"metadata,omitempty"`
+	Data		interface{}	`json:"data,omitempty"`
+}

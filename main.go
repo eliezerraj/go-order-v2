@@ -6,6 +6,8 @@ import (
 	"syscall"
 	"context"
   	"net/http"
+	"sync"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"go.uber.org/zap"
@@ -100,15 +102,6 @@ func setupMetrics(cfg *config.Config) {
     }()
 }
 
-// getCmd retrieves the command type from the environment variable or uses the default value.
-func getCmd(env string, val string) string {
-	cmd := os.Getenv(env)
-	if cmd == "" {
-		cmd = val
-	}
-	return cmd
-}
-
 func main() {
 	// Load environment configurations
 	cfg, err := config.Load()
@@ -129,25 +122,44 @@ func main() {
 
 	// Setup observability and metrics
 	setupObservability(cfg)
-	//setupMetrics(cfg)
+	setupMetrics(cfg)
 
 	// Setup signal handling for graceful shutdown
 	stopSignal := make(chan os.Signal, 1)
 	signal.Notify(stopSignal, os.Interrupt, syscall.SIGTERM)
 
-	// Determine the command type and execute the corresponding process
-	cmd := getCmd("COMMAND_TYPE", "worker")
+	// Setup context with signal cancellation
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	switch cmd {
+	// Define the process type webserver or worker.
+	switch cfg.App.Type {
 	case "worker":
 		logger.InfoOutCtx("starting worker process")
 
 		webServer := webserver.NewWebServer(cfg)
 		go webServer.Run()
 
-		go worker.Run(cfg.KafkaConsumer)
+		var workerWg sync.WaitGroup
+		workerWg.Add(1)
+		go func() {
+			defer workerWg.Done()
+			worker.Run(ctx, cfg.KafkaConsumer)
+		}()
+
+		// Wait until OS signal is triggered
+    	<-ctx.Done()
+    	logger.InfoOutCtx("termination signal received, starting shutdown")
 
 		<-stopSignal
+		
+		webServer.Shutdown()
+		logger.InfoOutCtx("webserver process stopped SUCCESSFULLY")
+		
+		//worker.Shutdown()
+		workerWg.Wait()
+		logger.InfoOutCtx("worker process stopped SUCCESSFULLY")
+
 	case "webserver":
 		logger.InfoOutCtx("starting webserver process")
 		
@@ -155,6 +167,8 @@ func main() {
 		go webServer.Run()
 
 		<-stopSignal
+		
 		webServer.Shutdown()
+		logger.InfoOutCtx("webserver process stopped SUCCESSFULLY")
 	}
 }

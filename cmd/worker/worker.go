@@ -1,8 +1,8 @@
 package worker
 
 import (
+	"context"
 	"os"
-	"sync"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 
@@ -14,17 +14,11 @@ var (
 	startKafkaConsumer = os.Getenv("START_KAFKA_CONSUMER") == "true"
 )
 
-func Run(kafkaConsumer config.KafkaConsumer) {
-	logger.InfoOutCtx("starting worker process SUCCESSFULLY")
+func Run(ctx context.Context, kafkaConsumer config.KafkaConsumer) {
+	logger.InfoOutCtx("KAFKA starting worker process SUCCESSFULLY")
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	
-	go func() {
+	event_kafka.Run(ctx, kafkaConsumer)
 
-		event_kafka.Run(kafkaConsumer)
-		defer wg.Done()
-	}()
+	logger.InfoOutCtx("KAFKA worker process finished cleanly")
 
-	wg.Wait()
 }
