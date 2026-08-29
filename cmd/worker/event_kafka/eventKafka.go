@@ -5,16 +5,18 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/go-order-v2/application/config"
+	"github.com/go-order-v2/application/infrastructure/application"
+	
 	"github.com/eliezerraj/go-core/v3/logger"
 
 	gocore_kafka "github.com/eliezerraj/go-core/v3/event/kafka"
 	"github.com/eliezerraj/go-core/v3/event/kafka/consumer"
 )
 
-
-func Run(ctx context.Context, kafkaConsumer config.KafkaConsumer) {
+func Run(ctx context.Context, kafkaConsumer config.KafkaConsumer, application *application.Application) {
 	logger.InfoOutCtx("starting event Kafka worker process SUCCESSFULLY")
 	
+	// Configure the Kafka dialer with the provided consumer settings
 	dialerConfig := gocore_kafka.DialerConfig{
 		Username:   kafkaConsumer.Username,
 		Password:   kafkaConsumer.Password,
@@ -25,7 +27,6 @@ func Run(ctx context.Context, kafkaConsumer config.KafkaConsumer) {
 
 	kafkaDialer := gocore_kafka.NewKafkaDialer(dialerConfig)
 	consumerConfig := kafkaDialer.ConsumerConfig(kafkaConsumer.GroupID, kafkaConsumer.Name)
-
 
 	// Create a new consumer worker
 	consumerWorker, err := consumer.NewConsumerWorker(consumerConfig)
@@ -43,7 +44,12 @@ func Run(ctx context.Context, kafkaConsumer config.KafkaConsumer) {
 		return
 	}
 
-	messageProcessor := NewMessageProcessor(consumerWorker)
-	messageProcessor.Start(ctx)
+	paymentEvent := NewPaymentEvent(application)
 
+	messageProcessor := NewMessageProcessor(consumerWorker, paymentEvent)
+	err = messageProcessor.Start(ctx)
+	if err != nil {
+		logger.ErrorOutCtx("failed to start message processor: %v", zap.Error(err))
+		return
+	}
 }

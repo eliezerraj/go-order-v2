@@ -94,3 +94,49 @@ func (c *CheckoutController) CheckoutGet(ctx context.Context, req external.Check
 
 	return res, nil
 }
+
+func (c *CheckoutController) CheckoutPut(ctx context.Context, req external.CheckoutRequest) (*entity.Checkout, error) {
+	logger.Info(ctx, "checkout controller CheckoutPut called", zap.Any("order", req.Order))
+
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutPut", trace.SpanKindInternal)
+	defer span.End()
+
+	payment := entity.PaymentCheckout{
+		PaymentNumber: req.Payment.PaymentNumber,
+		TransactionID: req.Payment.TransactionID,
+		Type:          req.Payment.Type,     
+	}
+
+	var amount float64
+	for _, item := range req.Payment.PaymentDetail {
+		payment.CreditCard = &entity.CreditCard{
+			Pan:      item.CreditCard.Pan,
+			Holder:   item.CreditCard.Holder,
+			Password: item.CreditCard.Password,
+			CVV:      item.CreditCard.CVV,
+		}
+		amount += item.Amount
+	}
+
+	payment.Currency = req.Payment.PaymentDetail[0].Currency
+	payment.Amount = amount
+	statusOrder := req.Payment.PaymentDetail[0].Status // update status from event-driven payment detail
+
+	// Create the order entity
+	checkout := entity.Checkout{
+		Order: entity.Order{
+			ID: req.Order.ID,
+			OrderNumber: req.Order.OrderNumber,
+			Status: statusOrder,
+		},
+		Payment: payment,
+	}
+
+	res, err := c.checkoutUseCase.CheckoutPut(ctx, checkout)
+	if err != nil {
+		logger.Error(ctx, "checkout controller CheckoutPut failed", zap.Error(err))
+		return nil, err
+	}
+
+	return res, nil
+}

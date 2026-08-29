@@ -3,6 +3,7 @@ package usecase
 import (
 	"time"
 	"context"
+	"errors"
 
 	"go.uber.org/zap"
 
@@ -34,6 +35,7 @@ type ICheckoutUseCase interface {
 	BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error)
 	CheckoutAdd(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error)
 	CheckoutGet(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error)
+	CheckoutPut(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error)
 }
 
 func NewCheckoutUseCase(orderRepository repository.IOrderRepository, checkoutRepository repository.ICheckoutRepository, paymentModule module.PaymentModule, inventoryModule module.InventoryModule) ICheckoutUseCase {
@@ -110,7 +112,6 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	//-----------------------------------------------------------
 	// Payment SECTION
 	//-----------------------------------------------------------
-
 	orderReq := external.OrderRequest{
 		ID: res_order.ID,
 		OrderNumber:  res_order.OrderNumber,
@@ -171,8 +172,8 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	//-----------------------------------------------------------
 	// Order SECTION - Update Status to "checkout:completed"
 	//-----------------------------------------------------------
-	createAt := time.Now().UTC()
-	res_order.UpdatedAt = &createAt
+	updatedAt := time.Now().UTC()
+	res_order.UpdatedAt = &updatedAt
 	res_order.Status = CheckoutStatusPending
 
 	rowsAffected, err := c.orderRepository.OrderPut(ctx, tx, *res_order)
@@ -183,6 +184,25 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	if rowsAffected == 0 {
 		logger.Warn(ctx, "checkout usecase CheckoutAdd: no rows affected, order not found", zap.Int("order_id", res_order.ID))
 		return nil, nil
+	}
+
+	// -----------------------------------------------------------
+	// OrderItem SECTION - Update Status to "checkout:completed" for each order item
+	//-----------------------------------------------------------
+	for i, item := range *res_order_itens {
+		item.UpdatedAt = &updatedAt
+		item.Status = CheckoutStatusPending
+
+		rowsAffected, err := c.orderRepository.OrderItemPut(ctx, tx, item)
+		if err != nil {
+			logger.Error(ctx, "checkout usecase CheckoutAdd failed to update order item status", zap.Error(err))
+			return nil, err
+		}
+		if rowsAffected == 0 {
+			logger.Warn(ctx, "checkout usecase CheckoutAdd: no rows affected, order item not found", zap.Int("order_item_id", item.ID))
+			return nil, nil
+		}
+		(*res_order_itens)[i] = item
 	}
 
 	// Set the payment details in the checkout response
@@ -210,4 +230,77 @@ func (c *CheckoutUsecase) CheckoutGet(ctx context.Context, checkout entity.Check
 	}
 
 	return res_checkout, nil
+}
+
+// CheckoutPut updates an existing checkout in the repository based on the provided checkout details.
+func (c *CheckoutUsecase) CheckoutPut(ctx context.Context, checkout entity.Checkout) (*entity.Checkout, error) {
+	logger.Info(ctx, "checkout usecase CheckoutPut called", zap.Any("checkout", checkout))
+
+	// Tracing.
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutPut", trace.SpanKindInternal)
+	defer span.End()
+
+	// Start a new transaction
+	tx, err := c.checkoutRepository.BeginTx(ctx, pgx.TxOptions{ IsoLevel: pgx.ReadCommitted, AccessMode: pgx.ReadWrite })
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutPut failed to begin transaction", zap.Error(err))
+		return nil, err
+	}
+
+	// Ensure that the transaction is either committed or rolled back
+	defer func() {
+		if err != nil {
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil && rollbackErr != pgx.ErrTxClosed {
+				logger.Error(ctx, "checkout usecase CheckoutPut failed to rollback transaction", zap.Error(rollbackErr))
+			}
+		} else {
+			if commitErr := tx.Commit(ctx); commitErr != nil {
+				logger.Error(ctx, "checkout usecase CheckoutPut failed to commit transaction", zap.Error(commitErr))
+				err = commitErr
+			}
+		}
+	}()
+
+	// -------------------------------------------
+	// Update Order in the repository
+	// --------------------------------------------
+	updatedAt := time.Now().UTC()
+	checkout.Order.UpdatedAt = &updatedAt
+
+	upd_checkout, err := c.checkoutRepository.CheckoutPut(ctx, tx, checkout)
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutPut failed", zap.Error(err))
+		return nil, err
+	}
+
+	if upd_checkout == 0{
+		logger.Warn(ctx, "checkout usecase CheckoutPut: no rows affected, order not found", zap.String("order_number", checkout.Order.OrderNumber))
+		return nil, errors.New("order not found")
+	}
+
+	// -------------------------------------------
+	// Update Orderitem in the repository
+	// --------------------------------------------
+	res_order_itens, err := c.orderRepository.OrderItensGet(ctx, checkout.Order)
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutAdd failed to get order items", zap.Error(err))
+		return nil, err
+	}
+
+	for _, orderItem := range *res_order_itens {
+		orderItem.UpdatedAt = &updatedAt
+		orderItem.Status = checkout.Order.Status
+		rowsAffected, err := c.orderRepository.OrderItemPut(ctx, tx, orderItem)
+		if err != nil {
+			logger.Error(ctx, "checkout usecase CheckoutPut failed to update order item", zap.Error(err))
+			return nil, err
+		}
+
+		if rowsAffected == 0 {
+			logger.Warn(ctx, "checkout usecase CheckoutPut: no rows affected, order item not found", zap.Int("order_item_id", orderItem.ID))
+			return nil, errors.New("order item not found")
+		}
+	}
+
+	return &checkout, nil
 }

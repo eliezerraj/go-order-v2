@@ -16,7 +16,8 @@ import (
 	"github.com/go-order-v2/cmd/webserver"
 	"github.com/go-order-v2/cmd/worker"
 	"github.com/go-order-v2/application/config"
-
+	"github.com/go-order-v2/application/infrastructure/application"
+	
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/observability/tracing"
 	coreMetricLib "github.com/eliezerraj/go-core/v3/observability/metric"
@@ -132,6 +133,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Create the wire application components
+	application, err := application.NewApplication(cfg)
+	if err != nil {
+		logger.FatalOutCtx("failed to initialize application", zap.Error(err))
+		os.Exit(1)
+	}
+
 	// Define the process type webserver or worker.
 	switch cfg.App.Type {
 	case "worker":
@@ -144,7 +152,7 @@ func main() {
 		workerWg.Add(1)
 		go func() {
 			defer workerWg.Done()
-			worker.Run(ctx, cfg.KafkaConsumer)
+			worker.Run(ctx, cfg.KafkaConsumer, application)
 		}()
 
 		// Wait until OS signal is triggered

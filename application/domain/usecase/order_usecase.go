@@ -129,7 +129,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 		order.Date = createAt
 	}
 	order.Status = OrderStatusPending
-	order.Transaction = "txn_" + order.OrderNumber
+	order.Transaction = "txn:" + order.OrderNumber
 	order.Currency = listOrderItem[0].Currency
 	order.Amount = orderAmount
 

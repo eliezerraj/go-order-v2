@@ -6,13 +6,22 @@ import (
 	"syscall"
 	"os/signal"
 	"fmt"
+	"encoding/json"
 
 	"go.uber.org/zap"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/event/kafka/consumer"
+	
+	"github.com/go-order-v2/application/domain/entity"
+    "github.com/go-order-v2/application/shared/otelkafka"
+	"github.com/go-order-v2/application/tracing"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Message struct {
@@ -21,18 +30,24 @@ type Message struct {
 	Raw     *kafka.Message
 }
 
-type MessageProcessor struct {
-	consumerWorker *consumer.ConsumerWorker
+type PaymentEventHandler interface {
+    ProcessPaymentMessage(ctx context.Context, payment entity.Payment) error
 }
 
-func NewMessageProcessor(consumerWorker *consumer.ConsumerWorker) *MessageProcessor {
+type MessageProcessor struct {
+	consumerWorker *consumer.ConsumerWorker
+	handler        PaymentEventHandler
+}
+
+func NewMessageProcessor(consumerWorker *consumer.ConsumerWorker, handler PaymentEventHandler) *MessageProcessor {
 	logger.InfoOutCtx("starting NewMessageProcessor SUCCESSFULLY")
 	return &MessageProcessor{
 		consumerWorker: consumerWorker,
+		handler: handler,
 	}
 }
 
-func (mp *MessageProcessor) Start(ctx context.Context) {
+func (mp *MessageProcessor) Start(ctx context.Context) error {
 	logger.InfoOutCtx("starting MessageProcessor SUCCESSFULLY")
 	
 	sigchan := make(chan os.Signal, 1)
@@ -49,7 +64,7 @@ func (mp *MessageProcessor) Start(ctx context.Context) {
 		select {
 			case <-ctx.Done():
 				logger.InfoOutCtx("received signal to stop message processor")
-				return
+				return nil
 			default:
 				ev := mp.consumerWorker.Consumer.Poll(100)
 				if ev == nil {
@@ -65,19 +80,45 @@ func (mp *MessageProcessor) Start(ctx context.Context) {
 				case kafka.Error:
 					logger.ErrorOutCtx("+++++ > KAFKA error occurred", zap.Any("error", e))
 				case *kafka.Message:
-					headers := extractHeaders(e.Headers)
+					msgCtx, span := extractTraceContext(ctx, e)
+					defer span.End()
+
 					fmt.Println("++++++++++++ > KAFKA message received < ++++++++++++++")
-					fmt.Println("+++++ > KAFKA message headers:", headers)
+					headers := extractHeaders(e.Headers)
+					fmt.Println("+++++ > KAFKA headers:", headers)
 
 					msg := Message{
 						Header: &headers,
 						Payload: string(e.Value),
-						Raw: e,
 					}
 
-					fmt.Println(zap.Any("", msg))
-					fmt.Println("++++++++++++ > KAFKA message received < ++++++++++++++")
-					logger.InfoOutCtx("+++++ > KAFKA message read successfully", zap.Any("message", msg))
+					var event entity.Event
+					if err := json.Unmarshal(e.Value, &event); err != nil {
+						logger.Error(msgCtx, "failed to unmarshal kafka event", zap.Error(err))
+						continue
+					}
+
+					// Convert interface{} to JSON bytes for further unmarshalling
+					dataBytes, err := json.Marshal(event.Data)
+					if err != nil {
+						logger.Error(msgCtx, "failed to marshal kafka event data", zap.Error(err))
+						continue
+					}
+
+					var payment entity.Payment
+					if err := json.Unmarshal(dataBytes, &payment); err != nil {
+						logger.Error(msgCtx, "failed to unmarshal kafka payment", zap.Error(err))
+						continue
+					}
+
+					fmt.Println("+++++ > KAFKA Payload:", msg.Payload)
+					fmt.Println("++++++++++++ > Finished processing KAFKA message < ++++++++++++++")
+					
+					if err := mp.handler.ProcessPaymentMessage(msgCtx, payment); err != nil {
+						logger.Error(msgCtx, "failed to process payment message", zap.Error(err))
+						continue
+					}
+					mp.consumerWorker.Consumer.CommitMessage(e)
 			}
 		}
 	}
@@ -89,4 +130,39 @@ func extractHeaders(headers []kafka.Header) map[string]string {
 		headerMap[string(h.Key)] = string(h.Value)
 	}
 	return headerMap
+}
+
+func extractTraceContext(ctx context.Context, msg *kafka.Message) (context.Context, trace.Span) {
+    // 1. Wrap kafka.Headers with your carrier
+    carrier := otelkafka.KafkaHeaderCarrier(msg.Headers)
+
+    // 2. Extract parent trace context from incoming message headers
+    parentCtx := otel.GetTextMapPropagator().Extract(ctx, &carrier)
+
+    // 3. Extract x-request-id if present and attach to context
+    requestID := carrier.Get("x-request-id")
+    if requestID != "" {
+        parentCtx = context.WithValue(parentCtx, tracing.RequestIDHeaderName, requestID)
+    }
+
+    // 4. Start a CONSUMER span as child of the incoming trace
+    topic := ""
+    if msg.TopicPartition.Topic != nil {
+        topic = *msg.TopicPartition.Topic
+    }
+
+    tracer := otel.Tracer("order-worker-consumer")
+    msgCtx, span := tracer.Start(
+        parentCtx,
+        topic+" receive",
+        trace.WithSpanKind(trace.SpanKindConsumer),
+        trace.WithAttributes(
+            semconv.MessagingSystemKafka,
+            semconv.MessagingDestinationName(topic),
+            semconv.MessagingKafkaMessageKey(string(msg.Key)),
+            //semconv.MessagingKafkaDestinationPartition(int(msg.TopicPartition.Partition)),
+        ),
+    )
+
+    return msgCtx, span
 }
