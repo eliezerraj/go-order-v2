@@ -73,9 +73,10 @@ type CreditCardRequest struct {
 	Password string	`json:"password,omitempty"`
 }
 
-type PaymentResponse struct {
-	Response    string	`json:"response"`
-	Payment		entity.PaymentCheckout	`json:"payment,omitempty"`
+// Generic PaymentResponse to handle different types of payment responses
+type PaymentResponse[T any] struct {
+    Response string `json:"response"`
+    Payment  T      `json:"payment,omitempty"`
 }
 
 type CheckoutResponse struct {
