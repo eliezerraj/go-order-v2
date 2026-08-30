@@ -44,8 +44,8 @@ type InventoryResponse struct {
 }
 
 type CheckoutRequest struct {
-	Order		OrderRequest		`json:"order,omitempty"`
-	Payment		PaymentRequest		`json:"payment,omitempty"`
+	Order		*OrderRequest		`json:"order,omitempty"`
+	Payment		*PaymentRequest		`json:"payment,omitempty"`
 }
 
 type PaymentRequest struct {

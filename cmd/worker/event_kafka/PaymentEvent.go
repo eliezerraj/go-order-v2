@@ -62,8 +62,8 @@ func (p *PaymentEvent) ProcessPaymentMessage(ctx context.Context, payment entity
 	}
 
 	CheckoutReq := external.CheckoutRequest{
-		Order:   orderReq,
-		Payment: paymentReq,
+		Order:   &orderReq,
+		Payment: &paymentReq,
 	}
 	res, err :=p.application.CheckoutController.CheckoutPut(ctx, CheckoutReq)
 
