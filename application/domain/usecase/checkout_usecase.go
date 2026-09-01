@@ -110,48 +110,6 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	res_order.OrderItem = res_order_itens
 
 	//-----------------------------------------------------------
-	// Payment SECTION
-	//-----------------------------------------------------------
-	orderReq := external.OrderRequest{
-		ID: res_order.ID,
-		OrderNumber:  res_order.OrderNumber,
-	}
-
-	// Create a list of 1 payment
-	listPaymentDetailsReq := make([]*external.PaymentDetailRequest, 1)
-
-	for i := range listPaymentDetailsReq {
-		paymentDetailReq := &external.PaymentDetailRequest{}
-		creditCardRed := external.CreditCardRequest{
-			Pan:            checkout.Payment.CreditCard.Pan,
-			Holder:         checkout.Payment.CreditCard.Holder,
-			Password:       checkout.Payment.CreditCard.Password,
-			CVV:            checkout.Payment.CreditCard.CVV,
-		}
-
-		paymentDetailReq.Currency = checkout.Payment.Currency
-		paymentDetailReq.Amount = checkout.Payment.Amount
-		paymentDetailReq.DetailDate = time.Now().UTC()
-		paymentDetailReq.CreditCard = &creditCardRed
-
-		listPaymentDetailsReq[i] = paymentDetailReq
-	}
-
-	paymentRequest := external.PaymentRequest{
-		TransactionID: res_order.Transaction,
-		Type:	checkout.Payment.Type,
-		Order: orderReq,
-		PaymentDetail: listPaymentDetailsReq,
-	}
-
-	// Call the payment module to process the payment
-	res_payment, err := c.paymentModule.PaymentAdd(ctx, paymentRequest)
-	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutAdd failed in payment module", zap.Error(err))
-		return nil, err
-	}
-
-	//-----------------------------------------------------------
 	// Inventory SECTION - Update Product Stock
 	//-----------------------------------------------------------
 	for _, item := range *res_order_itens {
@@ -203,6 +161,48 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 			return nil, nil
 		}
 		(*res_order_itens)[i] = item
+	}
+
+	//-----------------------------------------------------------
+	// Payment SECTION
+	//-----------------------------------------------------------
+	orderReq := external.OrderRequest{
+		ID: res_order.ID,
+		OrderNumber:  res_order.OrderNumber,
+	}
+
+	// Create a list of 1 payment
+	listPaymentDetailsReq := make([]*external.PaymentDetailRequest, 1)
+
+	for i := range listPaymentDetailsReq {
+		paymentDetailReq := &external.PaymentDetailRequest{}
+		creditCardRed := external.CreditCardRequest{
+			Pan:            checkout.Payment.CreditCard.Pan,
+			Holder:         checkout.Payment.CreditCard.Holder,
+			Password:       checkout.Payment.CreditCard.Password,
+			CVV:            checkout.Payment.CreditCard.CVV,
+		}
+
+		paymentDetailReq.Currency = checkout.Payment.Currency
+		paymentDetailReq.Amount = checkout.Payment.Amount
+		paymentDetailReq.DetailDate = time.Now().UTC()
+		paymentDetailReq.CreditCard = &creditCardRed
+
+		listPaymentDetailsReq[i] = paymentDetailReq
+	}
+
+	paymentRequest := external.PaymentRequest{
+		TransactionID: res_order.Transaction,
+		Type:	checkout.Payment.Type,
+		Order: orderReq,
+		PaymentDetail: listPaymentDetailsReq,
+	}
+
+	// Call the payment module to process the payment
+	res_payment, err := c.paymentModule.PaymentAdd(ctx, paymentRequest)
+	if err != nil {
+		logger.Error(ctx, "checkout usecase CheckoutAdd failed in payment module", zap.Error(err))
+		return nil, err
 	}
 
 	// Set the payment details in the checkout response

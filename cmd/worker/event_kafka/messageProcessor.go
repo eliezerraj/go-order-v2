@@ -22,6 +22,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 type Message struct {
@@ -80,48 +81,52 @@ func (mp *MessageProcessor) Start(ctx context.Context) error {
 				case kafka.Error:
 					logger.ErrorOutCtx("+++++ > KAFKA error occurred", zap.Any("error", e))
 				case *kafka.Message:
-					msgCtx, span := extractTraceContext(ctx, e)
-					defer span.End()
-
-					fmt.Println("++++++++++++ > KAFKA message received < ++++++++++++++")
-					headers := extractHeaders(e.Headers)
-					fmt.Println("+++++ > KAFKA headers:", headers)
-
-					msg := Message{
-						Header: &headers,
-						Payload: string(e.Value),
-					}
-
-					var event entity.Event
-					if err := json.Unmarshal(e.Value, &event); err != nil {
-						logger.Error(msgCtx, "failed to unmarshal kafka event", zap.Error(err))
-						continue
-					}
-
-					// Convert interface{} to JSON bytes for further unmarshalling
-					dataBytes, err := json.Marshal(event.Data)
-					if err != nil {
-						logger.Error(msgCtx, "failed to marshal kafka event data", zap.Error(err))
-						continue
-					}
-
-					var payment entity.Payment
-					if err := json.Unmarshal(dataBytes, &payment); err != nil {
-						logger.Error(msgCtx, "failed to unmarshal kafka payment", zap.Error(err))
-						continue
-					}
-
-					fmt.Println("+++++ > KAFKA Payload:", msg.Payload)
-					fmt.Println("++++++++++++ > Finished processing KAFKA message < ++++++++++++++")
-					
-					if err := mp.handler.ProcessPaymentMessage(msgCtx, payment); err != nil {
-						logger.Error(msgCtx, "failed to process payment message", zap.Error(err))
-						continue
-					}
-					mp.consumerWorker.Consumer.CommitMessage(e)
+					mp.handleMessage(ctx, e)
 			}
 		}
 	}
+}
+
+func (mp *MessageProcessor) handleMessage(ctx context.Context, e *kafka.Message) {
+    msgCtx, span := extractTraceContext(ctx, e)
+    defer span.End()
+
+    fmt.Println("++++++++++++ > KAFKA message received < ++++++++++++++")
+    headers := extractHeaders(e.Headers)
+    fmt.Println("+++++ > KAFKA headers:", headers)
+
+    msg := Message{
+        Header:  &headers,
+        Payload: string(e.Value),
+    }
+
+    var event entity.Event
+    if err := json.Unmarshal(e.Value, &event); err != nil {
+        logger.Error(msgCtx, "failed to unmarshal kafka event", zap.Error(err))
+        return
+    }
+
+    dataBytes, err := json.Marshal(event.Data)
+    if err != nil {
+        logger.Error(msgCtx, "failed to marshal kafka event data", zap.Error(err))
+        return
+    }
+
+    var payment entity.Payment
+    if err := json.Unmarshal(dataBytes, &payment); err != nil {
+        logger.Error(msgCtx, "failed to unmarshal kafka payment", zap.Error(err))
+        return
+    }
+
+    fmt.Println("+++++ > KAFKA Payload:", msg.Payload)
+    fmt.Println("++++++++++++ > Finished processing KAFKA message < ++++++++++++++")
+
+    if err := mp.handler.ProcessPaymentMessage(msgCtx, payment); err != nil {
+        logger.Error(msgCtx, "failed to process payment message", zap.Error(err))
+        return
+    }
+    
+    mp.consumerWorker.Consumer.CommitMessage(e)
 }
 
 func extractHeaders(headers []kafka.Header) map[string]string {
@@ -160,9 +165,15 @@ func extractTraceContext(ctx context.Context, msg *kafka.Message) (context.Conte
             semconv.MessagingSystemKafka,
             semconv.MessagingDestinationName(topic),
             semconv.MessagingKafkaMessageKey(string(msg.Key)),
-            //semconv.MessagingKafkaDestinationPartition(int(msg.TopicPartition.Partition)),
         ),
     )
+
+	// Verify span and attributes
+    if roSpan, ok := span.(sdktrace.ReadOnlySpan); ok {
+        for _, attr := range roSpan.Attributes() {
+            fmt.Printf("DEBUG SEMCONV -> %s: %v\n", attr.Key, attr.Value.AsInterface())
+        }
+    }
 
     return msgCtx, span
 }
