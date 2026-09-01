@@ -204,16 +204,18 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 
 	// Get payment details from go-payment module for the order
 	paymentRequest := external.PaymentRequest{
-		PaymentNumber: res_order.Transaction,
+		Order: external.OrderRequest{
+			ID: res_order.ID,
+		},
 	}
-	res_payment, err := o.paymentModule.PaymentGet(ctx, paymentRequest)
+	res_payments, err := o.paymentModule.PaymentGet(ctx, paymentRequest)
 	if err != nil {
 		logger.Error(ctx, "order usecase OrderGet failed to get payment details", zap.Error(err))
-		//return nil, err
+		return nil, err
 	}
-	_ = res_payment
+
 	// Set the payment details in the order response
-	//res_order.Payment = &[]entity.PaymentCheckout{*res_payment}
+	res_order.Payments = res_payments
 
 	logger.Info(ctx, "order usecase OrderGet completed SUCCESSFULLY")
 

@@ -10,18 +10,27 @@ import (
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/controller/validator"
 
 	"go.opentelemetry.io/otel/trace"
 )
 
 type CheckoutController struct {
+	schema validator.Schema
 	checkoutUseCase usecase.ICheckoutUseCase
 }
 
 func NewCheckoutController(checkoutUseCase usecase.ICheckoutUseCase) *CheckoutController {
 	logger.InfoOutCtx("initializing checkout controller SUCCESSFULLY")
 
+	schema := validator.Schema{
+		Validate: func(ctx context.Context, data any) error {
+			return nil
+		},
+	}
+
 	return &CheckoutController{
+		schema: schema,
 		checkoutUseCase: checkoutUseCase,
 	}
 }
@@ -32,6 +41,12 @@ func (c *CheckoutController) CheckoutAdd(ctx context.Context, req external.Check
 	// Trace
 	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutAdd", trace.SpanKindInternal)
 	defer span.End()
+
+	// Validate the request using the schema
+	if err := c.schema.CheckoutAddSchema().Validate(ctx, req); err != nil {
+		logger.Error(ctx, "checkout controller CheckoutAdd validation failed", zap.Error(err))
+		return nil, err
+	}
 
 	payment := entity.PaymentCheckout{
 		PaymentNumber: req.Payment.PaymentNumber,
@@ -98,8 +113,15 @@ func (c *CheckoutController) CheckoutGet(ctx context.Context, req external.Check
 func (c *CheckoutController) CheckoutPut(ctx context.Context, req external.CheckoutRequest) (*entity.Checkout, error) {
 	logger.Info(ctx, "checkout controller CheckoutPut called", zap.Any("order", req.Order))
 
+	// Tracing and metrics
 	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutPut", trace.SpanKindInternal)
 	defer span.End()
+
+	// Validate the request using the schema
+	if err := c.schema.CheckoutAddSchema().Validate(ctx, req); err != nil {
+		logger.Error(ctx, "checkout controller CheckoutPut validation failed", zap.Error(err))
+		return nil, err
+	}
 
 	payment := entity.PaymentCheckout{
 		PaymentNumber: req.Payment.PaymentNumber,

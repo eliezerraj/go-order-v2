@@ -109,7 +109,7 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 	}
 
 	// Decode the response body into a Payment struct
-    var res external.PaymentResponse
+    var res external.PaymentResponse[entity.PaymentCheckout]
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		logger.Error(ctx, "Failed to decode response", zap.Error(err))
 		return nil, err
@@ -118,7 +118,7 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
     return &res.Payment, nil
 }
 
-func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external.PaymentRequest) (*entity.PaymentCheckout, error) {
+func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external.PaymentRequest) ([]*entity.Payment, error) {
 	logger.Info(ctx, "payment module PaymentGet called")
 
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Payment.Timeout)
@@ -129,7 +129,7 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 	defer span.End()
 
 	method := "GET"
-	endpoint := fmt.Sprintf("%s%s/%s", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath, paymentRequest.PaymentNumber)
+	endpoint := fmt.Sprintf("%s%s/%v", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath + "/order", paymentRequest.Order.ID)
 
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
 	if err != nil {
@@ -176,12 +176,12 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 		return nil, fmt.Errorf("payment service returned status: %d", resp.StatusCode)
 	}
 
+	var res external.PaymentResponse[[]*entity.Payment]
 	// Decode the response body into a Payment struct
-    var res external.PaymentResponse
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		logger.Error(ctx, "Failed to decode response", zap.Error(err))
 		return nil, err
 	}
 
-    return &res.Payment, nil
+    return res.Payment, nil
 }

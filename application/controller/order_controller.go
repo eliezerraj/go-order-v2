@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/eliezerraj/go-core/v3/logger"
-	
+	"github.com/go-order-v2/application/controller/validator"
 	"github.com/go-order-v2/application/domain/usecase"
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/domain/entity"
@@ -17,13 +17,21 @@ import (
 )
 
 type OrderController struct {
+	schema validator.Schema
 	orderUseCase usecase.IOrderUseCase
 }
 
 func NewOrderController(orderUseCase usecase.IOrderUseCase) *OrderController {
 	logger.InfoOutCtx("initializing order controller SUCCESSFULLY")
 
+	schema := validator.Schema{
+		Validate: func(ctx context.Context, data any) error {
+			return nil
+		},
+	}
+
 	return &OrderController{
+		schema: schema,
 		orderUseCase: orderUseCase,
 	}
 }
@@ -31,8 +39,14 @@ func NewOrderController(orderUseCase usecase.IOrderUseCase) *OrderController {
 func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderRequest) (*entity.Order, error) {
 	logger.Info(ctx, "order controller OrderAdd called")
 
+	// Tracing context for the OrderAdd operation
 	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderController.OrderAdd", trace.SpanKindInternal)
 	defer span.End()
+
+	// Schema validation
+	if err := o.schema.OrderAddSchema().Validate(ctx, req); err != nil {
+		return nil, err
+	}
 
 	var orderDate time.Time
 	if req.Date != "" {
@@ -84,6 +98,7 @@ func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderReques
 func (o *OrderController) OrderGet(ctx context.Context, req external.OrderRequest) (*entity.Order, error) {
 	logger.Info(ctx, "order controller OrderGet called", zap.String("order_number", req.OrderNumber))
 	
+	// Tracing context for the OrderGet operation
 	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderController.OrderGet", trace.SpanKindInternal)
 	defer span.End()
 

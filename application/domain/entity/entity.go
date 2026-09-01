@@ -15,6 +15,7 @@ type Order struct {
 	CustomerID		string		`json:"customer_id,omitempty"`
 	OrderItem		*[]OrderItem `json:"order_item,omitempty"`
 	Payment			*[]PaymentCheckout	`json:"payment,omitempty"`
+	Payments		[]*Payment	`json:"payment_details,omitempty"`
 	CreatedAt		time.Time 	`json:"created_at,omitempty"`
 	UpdatedAt		*time.Time 	`json:"updated_at,omitempty"`
 }
