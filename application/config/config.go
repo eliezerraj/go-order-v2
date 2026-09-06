@@ -51,6 +51,17 @@ type Authorization struct {
 	DryRun  			bool   `env:"AUTHORIZATION_DRY_RUN,required"`
 	JwksURL 			string `env:"AUTHORIZATION_JWKS_URL"`
 	RequiredAuthHeader  bool   `env:"AUTHORIZATION_REQUIRED_HEADER"`
+	Timeout             time.Duration `env:"AUTHORIZATION_TIMEOUT" envDefault:"15s"`
+}
+
+type Authentication struct {
+	Timeout             time.Duration `env:"AUTHENTICATION_TIMEOUT" envDefault:"10s"`
+	ClientID            string        `env:"AUTHENTICATION_CLIENT_ID" envDefault:"go-order-v2"`
+	ClientSecret        string        `env:"AUTHENTICATION_CLIENT_SECRET" envDefault:"go-order-v2-secret-001"`
+	DryRun              bool          `env:"AUTHENTICATION_DRY_RUN" envDefault:"true"`
+	RefreshInterval     int           `env:"AUTHENTICATION_REFRESH_INTERVAL" envDefault:"60"`
+	AuthURL             string        `env:"AUTHENTICATION_AUTH_URL" envDefault:"http://localhost:7100/v1/auth"`
+	RefreshURL          string        `env:"AUTHENTICATION_REFRESH_URL" envDefault:"http://localhost:7100/v1/refresh"`
 }
 
 type App struct {
@@ -74,6 +85,7 @@ type Config struct {
 	Log         Log
 	OtelEnv		OtelEnv
 	Authorization Authorization
+	Authentication Authentication
 	KafkaConsumer KafkaConsumer
 	Inventory   Inventory
 	Payment    Payment

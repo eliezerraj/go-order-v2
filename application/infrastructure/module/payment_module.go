@@ -12,6 +12,7 @@ import (
 
 	"github.com/eliezerraj/go-core/v3/httpclient"
 	"github.com/eliezerraj/go-core/v3/logger"
+	"github.com/eliezerraj/go-core/v3/auth"
 
 	"github.com/go-order-v2/application/config"
 	"github.com/go-order-v2/application/domain/entity"
@@ -22,22 +23,27 @@ import (
 type PaymentModule struct {
 	cfg *config.Config
 	client	httpclient.IHTTPClient
+	authClientService *auth.AuthClientService
 }
 
 const (
-	AcceptHeader      = "Accept"
-	ContentTypeHeader = "Content-Type"
-	ConnectionHeader  = "Connection"
-	KeepAlive         = "keep-alive"
-	XResquestID		 = "X-Request-ID"
+	AcceptHeader      	= "Accept"
+	ContentTypeHeader 	= "Content-Type"
+	ConnectionHeader  	= "Connection"
+	KeepAlive         	= "keep-alive"
+	XResquestID		 	= "X-Request-ID"
+	Authorization 		= "Authorization"
 )
 
-func NewPaymentModule(cfg *config.Config, client httpclient.IHTTPClient) PaymentModule {
+func NewPaymentModule(cfg *config.Config, 
+						client httpclient.IHTTPClient,
+						authClientService *auth.AuthClientService) PaymentModule {
 	logger.InfoOutCtx("NewPaymentModule called")
 
 	return PaymentModule{
 		cfg: cfg,
 		client: client,
+		authClientService: authClientService,
 	}
 }
 
@@ -81,6 +87,7 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 		ContentTypeHeader: "application/json",
 		KeepAlive: "timeout=5, max=1000",
 		XResquestID: xrequestid,
+		Authorization: "Bearer " + im.authClientService.GetToken(),
 	}
 
 	for key, value := range headers {
@@ -149,6 +156,7 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 		ContentTypeHeader: "application/json",
 		KeepAlive: "timeout=5, max=1000",
 		XResquestID: xrequestid,
+		Authorization: "Bearer " + im.authClientService.GetToken(),
 	}
 
 	for key, value := range headers {
