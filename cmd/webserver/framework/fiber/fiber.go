@@ -1,6 +1,10 @@
 package fiber
 
 import (
+	"context"
+	
+	"go.uber.org/zap"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/json-iterator/go"
 
@@ -12,6 +16,7 @@ import (
 	"github.com/go-order-v2/cmd/webserver/framework/fiber/middleware"
 
 	"github.com/eliezerraj/go-core/v3/logger"
+	"github.com/eliezerraj/go-core/v3/auth"
 )
 
 // Create a new Server configuration.
@@ -68,7 +73,7 @@ func NewFiberServer(cfg *config.Config) *FiberServer {
 	fiberApp := fiber.New(fiberConfig.Config)
 
 	// Setup middleware for the Fiber server
-	setupMiddleware(cfg, fiberApp)
+	setupMiddleware(fiberApp)
 
 	return &FiberServer{
 		cfg:    cfg,
@@ -77,7 +82,7 @@ func NewFiberServer(cfg *config.Config) *FiberServer {
 	}
 }
 
-func setupMiddleware(cfg *config.Config, fiberApp *fiber.App) {
+func setupMiddleware(fiberApp *fiber.App) {
 	logger.InfoOutCtx("setting up middleware for fiber server")
 	
 	fiberApp.Use(middleware.HeaderMiddleware())
@@ -90,10 +95,22 @@ func setupMiddleware(cfg *config.Config, fiberApp *fiber.App) {
 }
 
 // SetupRoutes sets up the routes for the Fiber server using the provided application instance.
-func (s *FiberServer) SetupRoutes(application *application.Application) {
+func (s *FiberServer) SetupRoutes(cfg *config.Config, application *application.Application) {
 	logger.InfoOutCtx("setting up routes for fiber server SUCCESSFULLY")
 
 	root := s.FiberApp.Group("/")
+
+	// Create the AuthService instance and retrieve the JWKS URL
+	authService := auth.NewAuthService(	cfg.Authorization.JwksURL, 
+										cfg.Authorization.DryRun, 
+										cfg.Authorization.HeaderKey, 
+										cfg.Authorization.Timeout)
+	
+										// Retrieve the JWKS URL from the auth service
+	err := authService.GetJwksUrl(context.Background())
+	if err != nil {
+		logger.WarnOutCtx("Failed to get JWKS URL", zap.Error(err))
+	}
 
 	// Create adapters for controllers						
 	adapters := newAdapters(s.cfg, application)
@@ -103,9 +120,20 @@ func (s *FiberServer) SetupRoutes(application *application.Application) {
 	appRoutes.Get("/info", adapters.metadataAdp.InfoGet)
 	appRoutes.Get("/echo-header", adapters.metadataAdp.HeadersGet)
 	appRoutes.Get("/echo-context", adapters.metadataAdp.ContextGet)
-	appRoutes.Get("/order/:order_number", middleware.MetricsMiddleware(adapters.applicationAdp.OrderGet))
-	appRoutes.Post("/order", middleware.MetricsMiddleware(adapters.applicationAdp.OrderAdd))
 
-	appRoutes.Get("/order/checkout/:order_number", middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutGet))
-	appRoutes.Post("/order/checkout", middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutAdd))
+	appRoutes.Get("/order/:order_number", 
+					authService.FiberAuthorizationMiddleware(),
+					middleware.MetricsMiddleware(adapters.applicationAdp.OrderGet))
+	
+	appRoutes.Post("/order", 
+					authService.FiberAuthorizationMiddleware(),
+					middleware.MetricsMiddleware(adapters.applicationAdp.OrderAdd))
+
+	appRoutes.Get("/order/checkout/:order_number", 
+					authService.FiberAuthorizationMiddleware(),
+					middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutGet))
+	
+	appRoutes.Post("/order/checkout", 
+					authService.FiberAuthorizationMiddleware(),
+					middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutAdd))
 }

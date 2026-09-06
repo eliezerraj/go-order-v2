@@ -36,7 +36,7 @@ func (p *PaymentEvent) ProcessPaymentMessage(ctx context.Context, payment entity
 	for _, detail := range payment.PaymentDetail {
 		listPaymentDetailRequest = append(listPaymentDetailRequest, &external.PaymentDetailRequest{
 			ID:     detail.ID,
-			DetailDate: detail.DetailDate,
+			//DetailDate: detail.DetailDate,
 			Status: detail.Status,
 			Currency: detail.Currency,
 			Amount: detail.Amount,

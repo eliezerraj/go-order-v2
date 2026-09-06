@@ -9,6 +9,7 @@ import (
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/httpclient"
 	"github.com/eliezerraj/go-core/v3/database/connector"
+	"github.com/eliezerraj/go-core/v3/auth"
 
 	"github.com/go-order-v2/application/infrastructure/module"
 	"github.com/go-order-v2/application/config"
@@ -94,12 +95,27 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 		MaxConnsPerHost:     cfg.HTTP.MaxConnsPerHost,
 		ServiceName:         cfg.App.Name,
 	}
+
+	// Create HTTP clients for the modules.
 	invHttpClient := httpclient.NewHttpClient(httpConfig)
 	payHttpClient := httpclient.NewHttpClient(httpConfig)
 
+	// Create the authentication module.
+	authClientServiceOption := func(a *auth.AuthClientService) {
+		a.AuthURL = cfg.Authentication.AuthURL
+		a.RefreshURL = cfg.Authentication.RefreshURL
+		a.ClientID = cfg.Authentication.ClientID
+		a.ClientSecret = cfg.Authentication.ClientSecret
+		a.DryRun = cfg.Authentication.DryRun
+		a.RefreshInterval = cfg.Authentication.RefreshInterval
+	}
+	
+	authClientService := auth.NewAuthClientService(authClientServiceOption)
+	authClientService.StartAuthenticate(context.Background())
+
 	// Create the inventory module.
-	inventoryModule := module.NewInventoryModule(cfg, invHttpClient)
-	paymentModule := module.NewPaymentModule(cfg, payHttpClient)
+	inventoryModule := module.NewInventoryModule(cfg, invHttpClient, authClientService)
+	paymentModule := module.NewPaymentModule(cfg, payHttpClient, authClientService)
 
 	// UseCase initialization
 	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule, paymentModule)

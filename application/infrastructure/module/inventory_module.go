@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"go.uber.org/zap"
+	"github.com/eliezerraj/go-core/v3/auth"
 
 	"go.opentelemetry.io/otel/trace"
 
@@ -24,14 +25,18 @@ const RequestIDHeaderName = "x-request-id"
 type InventoryModule struct {
 	cfg *config.Config
 	client	httpclient.IHTTPClient
+	authClientService *auth.AuthClientService
 }
 
-func NewInventoryModule(cfg *config.Config, client	httpclient.IHTTPClient) InventoryModule {
-	logger.InfoOutCtx("NewInventoryModule called")
+func NewInventoryModule(cfg *config.Config, 
+						client httpclient.IHTTPClient,
+						authClientService *auth.AuthClientService) InventoryModule {
+	logger.InfoOutCtx("NewInventoryModule called with authClientService", zap.Any("authClientService", authClientService))
 
 	return InventoryModule{
 		cfg: cfg,
 		client: client,
+		authClientService: authClientService,
 	}
 }
 
@@ -78,6 +83,7 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 		ContentTypeHeader: "application/json",
 		KeepAlive: "timeout=5, max=1000",
 		XResquestID: xrequestid,
+		Authorization: "Bearer " + im.authClientService.GetToken(),
 	}
 
 	for key, value := range headers {
@@ -162,6 +168,7 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 		ContentTypeHeader: "application/json",
 		KeepAlive: "timeout=5, max=1000",
 		XResquestID: xrequestid,
+		Authorization: "Bearer " + im.authClientService.GetToken(),
 	}
 
 	for key, value := range headers {

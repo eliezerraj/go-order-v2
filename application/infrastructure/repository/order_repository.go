@@ -287,7 +287,7 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem
 }
 
 func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.Order) (rowsAffected int64, err error) {
-	logger.Info(ctx, "order repository OrderPut called")
+	logger.Info(ctx, "order repository OrderPut called", zap.Any("order", order))
 
 	// Tracing and metrics
 	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderPut", trace.SpanKindInternal)
@@ -335,7 +335,7 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 }
 
 func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (rowsAffected int64, err error) {
-	logger.Info(ctx, "order repository OrderItemPut called")
+	logger.Info(ctx, "order repository OrderItemPut called", zap.Any("orderItem", orderItem))
 
 	// Tracing and metrics
 	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderItemPut", trace.SpanKindInternal)
