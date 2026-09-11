@@ -57,10 +57,9 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "paymentModule.PaymentAdd", trace.SpanKindInternal)
 	defer span.End()
 
-	method := "POST"	
 	endpoint := fmt.Sprintf("%s%s", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath)
 
-	logger.Debug(ctx, "payment module PaymentAdd request", zap.String("method", method), zap.String("endpoint", endpoint))
+	logger.Debug(ctx, "payment module PaymentAdd request", zap.String("method", http.MethodPost), zap.String("endpoint", endpoint))
 	logger.Debug(ctx, "payment module PaymentAdd request body", zap.Any("payment_request", paymentRequest))
 	
 	body, err := json.Marshal(paymentRequest)
@@ -69,7 +68,7 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return nil, err
@@ -135,10 +134,9 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "paymentModule.PaymentGet", trace.SpanKindInternal)
 	defer span.End()
 
-	method := "GET"
 	endpoint := fmt.Sprintf("%s%s/%v", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath + "/order", paymentRequest.Order.ID)
 
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return nil, err

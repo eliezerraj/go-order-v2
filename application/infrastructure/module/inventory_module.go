@@ -51,8 +51,6 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 	defer span.End()
 
 	var endpoint string
-	method := "GET"
-	
 	if product.Sku != "" {
 		endpoint = fmt.Sprintf("%s%s/%s", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.Sku)
 	} else if product.ID != 0 {
@@ -63,9 +61,9 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 		return nil, err
 	}
 
-	logger.Info(ctx, "inventory module GetInventory request", zap.String("method", method), zap.String("endpoint", endpoint))
+	logger.Info(ctx, "inventory module GetInventory request", zap.String("method", http.MethodGet), zap.String("endpoint", endpoint))
 	
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return nil, err
@@ -130,9 +128,8 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s/inventory/%d", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.ID)
-	method := "PATCH"
 
-	logger.Info(ctx, "inventory module InventoryPatch request", zap.String("method", method), zap.String("endpoint", endpoint))
+	logger.Info(ctx, "inventory module InventoryPatch request", zap.String("method", http.MethodPatch), zap.String("endpoint", endpoint))
 
 	inventory := &entity.Inventory{
 		Available: product.Inventory.Available,
@@ -150,7 +147,7 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 
 	logger.Debug(ctx, "inventory module InventoryPatch payload", zap.Any("payload", payload))
 
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(payloadBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, endpoint, bytes.NewReader(payloadBytes))
 	if err != nil {
 		logger.Error(ctx, "Failed to create request", zap.Error(err))
 		return err
