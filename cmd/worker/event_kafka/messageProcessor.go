@@ -67,7 +67,7 @@ func (mp *MessageProcessor) Start(ctx context.Context) error {
 				logger.InfoOutCtx("received signal to stop message processor")
 				return nil
 			default:
-				ev := mp.consumerWorker.Consumer.Poll(100)
+				ev := mp.consumerWorker.Consumer.Poll(5000) // Poll for Kafka events with a 5-second timeout
 				if ev == nil {
 					continue
 				}
