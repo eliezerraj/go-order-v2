@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"os/signal"
 	"fmt"
+    "time"
 	"encoding/json"
 
 	"go.uber.org/zap"
@@ -80,6 +81,7 @@ func (mp *MessageProcessor) Start(ctx context.Context) error {
 					logger.InfoOutCtx("+++++ > KAFKA reached end of partition", zap.Any("partition", e))
 				case kafka.Error:
 					logger.ErrorOutCtx("+++++ > KAFKA error occurred", zap.Any("error", e))
+                    time.Sleep(5 * time.Second)
 				case *kafka.Message:
 					mp.handleMessage(ctx, e)
 			}

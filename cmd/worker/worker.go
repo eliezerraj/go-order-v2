@@ -20,5 +20,4 @@ func Run(ctx context.Context, kafkaConsumer config.KafkaConsumer, application *a
 	event_kafka.Run(ctx, kafkaConsumer, application)
 
 	logger.InfoOutCtx("KAFKA worker process finished cleanly SUCCESSFULLY")
-
 }
