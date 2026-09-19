@@ -121,6 +121,10 @@ func (s *FiberServer) SetupRoutes(cfg *config.Config, application *application.A
 	appRoutes.Get("/echo-header", adapters.metadataAdp.HeadersGet)
 	appRoutes.Get("/echo-context", adapters.metadataAdp.ContextGet)
 
+	appRoutes.Get("/order/time-series-order-items",
+					authService.FiberAuthorizationMiddleware(),
+					middleware.MetricsMiddleware(adapters.applicationAdp.TimeSeriesOrderItemsGet))
+
 	appRoutes.Get("/order/:order_number", 
 					authService.FiberAuthorizationMiddleware(),
 					middleware.MetricsMiddleware(adapters.applicationAdp.OrderGet))
@@ -136,4 +140,5 @@ func (s *FiberServer) SetupRoutes(cfg *config.Config, application *application.A
 	appRoutes.Post("/order/checkout", 
 					authService.FiberAuthorizationMiddleware(),
 					middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutAdd))
+
 }

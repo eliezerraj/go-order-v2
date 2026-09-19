@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"context"
-
+	"strconv"
 	"go.uber.org/zap"
 
 	"github.com/go-order-v2/application/config"
@@ -183,6 +183,9 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber *fiber.Ctx) error {
 	return ctxFiber.Status(fiber.StatusOK).JSON(resp)
 }
 
+// -----------------------------------
+// Controller methods for CheckoutController
+// -----------------------------------
 func (a *ApplicationAdapter) CheckoutAdd(ctxFiber *fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
 	defer cancel()
@@ -232,4 +235,66 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber *fiber.Ctx) error {
 	}
 
 	return ctxFiber.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// -----------------------------------
+// Controller methods for DataProviderController
+// -----------------------------------
+func (a *ApplicationAdapter) TimeSeriesOrderItemsGet(ctxFiber *fiber.Ctx) error {
+	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.UserContext(), a.cfg.HTTP.Timeout)
+	defer cancel()
+
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.timeSeriesOrderItemsGet", trace.SpanKindInternal)
+	defer span.End()
+
+	logger.Info(ctx, "TimeSeriesOrderItemsGet called")
+
+	logger.Debug(
+		ctx,
+		a.cfg.App.Name,
+		zap.ByteString("headers", utils.FormatHeadersAsJSON(ctxFiber.GetReqHeaders())),
+		zap.ByteString("query", ctxFiber.Request().URI().QueryString()),
+		zap.Any("params", ctxFiber.AllParams()),
+		zap.ByteString("body", ctxFiber.Body()),
+	)
+
+	product_sku := ctxFiber.Query("product")
+	limit, err := strconv.Atoi(ctxFiber.Query("limit"))
+	if err != nil {
+		logger.Warn(ctx, "failed to parse limit, using default value 7", zap.Error(err))
+		limit = 7
+	}
+	offset, err := strconv.Atoi(ctxFiber.Query("offset"))
+	if err != nil {
+		logger.Warn(ctx, "failed to parse offset, using default value 0", zap.Error(err))
+		offset = 0
+	}
+
+	timeSeriesOrderItemRequest := external.TimeSeriesOrderItemRequest{
+		ProductRequest: external.ProductRequest{
+			Sku: product_sku,
+		},
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	res, err := a.application.DataProviderController.TimeSeriesOrderItemsGet(ctx, timeSeriesOrderItemRequest)
+	if err != nil {
+		logger.Error(ctx, "failed to get time series order items", zap.Error(err))
+		errorResponse := external.NewResponseError(ctx,
+			fiber.StatusInternalServerError,
+			fiber.ErrInternalServerError,
+			fiber.ErrInternalServerError.Message,
+			"failed to get time series order items",
+			err.Error(),
+			external.BUSSINESS_ERROR)
+		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
+	}
+
+	resp := external.TimeSeriesOrderItemResponse{
+		Response: "Time series order items retrieved successfully",
+		TimeSeriesOrderItems: res,
+	}
+
+	return ctxFiber.Status(fiber.StatusOK).JSON(resp)
 }

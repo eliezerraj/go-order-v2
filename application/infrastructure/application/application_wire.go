@@ -21,16 +21,19 @@ import (
 type Application struct {
 	OrderController *controller.OrderController
 	CheckoutController *controller.CheckoutController
+	DataProviderController *controller.DataProviderController
 }
 
 type UseCase struct {
 	OrderUsecase usecase.IOrderUseCase
 	CheckoutUsecase usecase.ICheckoutUseCase
+	DataProviderUsecase usecase.IDataProviderUseCase
 }
 
 type Repository struct {
 	OrderRepository repository.IOrderRepository
 	CheckoutRepository repository.ICheckoutRepository
+	DataProviderRepository repository.IDataProvider
 }
 
 func NewApplication(cfg *config.Config) (*Application, error) {
@@ -84,7 +87,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	// Repository initialization
 	orderRepository := repository.NewOrderRepository(dbConnector)
 	checkoutRepository := repository.NewCheckoutRepository(dbConnector)
-	
+	dataProviderRepository := repository.NewDataProviderRepository(dbConnector)
 	// Create the forwards modules.
 	httpConfig := &httpclient.HttpConfig{
 		Timeout:             cfg.HTTP.Timeout * time.Second,
@@ -120,13 +123,18 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	// UseCase initialization
 	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule, paymentModule)
 	checkoutUsecase := usecase.NewCheckoutUseCase(orderRepository, checkoutRepository, paymentModule, inventoryModule)
+	
+	// UseCase for DataProvider initialization
+	dataProviderUsecase := usecase.NewDataProviderUseCase(dataProviderRepository, inventoryModule)
 
 	// Controller initialization
 	orderController := controller.NewOrderController(orderUsecase)
 	checkoutController := controller.NewCheckoutController(checkoutUsecase)
+	dataProviderController := controller.NewDataProviderController(dataProviderUsecase)
 
 	return &Application{
 		OrderController: orderController,
 		CheckoutController: checkoutController,
+		DataProviderController: dataProviderController,
 	}, nil
 }
