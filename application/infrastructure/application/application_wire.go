@@ -88,6 +88,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	orderRepository := repository.NewOrderRepository(dbConnector)
 	checkoutRepository := repository.NewCheckoutRepository(dbConnector)
 	dataProviderRepository := repository.NewDataProviderRepository(dbConnector)
+	
 	// Create the forwards modules.
 	httpConfig := &httpclient.HttpConfig{
 		Timeout:             cfg.HTTP.Timeout * time.Second,
