@@ -25,7 +25,7 @@ type IDataProviderUseCase interface {
 }
 
 func NewDataProviderUseCase(dataproviderRepository repository.IDataProvider, inventoryModule module.InventoryModule) IDataProviderUseCase {
-	logger.InfoOutCtx("initializing TimeSeriesOrderItemsGet usecase SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing TimeSeriesOrderItemsGet usecase SUCCESSFULLY")
 	
 	return &DataProviderUseCase{
 		dataproviderRepository: dataproviderRepository,

@@ -22,7 +22,7 @@ type OrderController struct {
 }
 
 func NewOrderController(orderUseCase usecase.IOrderUseCase) *OrderController {
-	logger.InfoOutCtx("initializing order controller SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing order controller SUCCESSFULLY")
 
 	schema := validator.Schema{
 		Validate: func(ctx context.Context, data any) error {

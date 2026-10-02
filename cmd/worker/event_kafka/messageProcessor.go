@@ -42,7 +42,7 @@ type MessageProcessor struct {
 }
 
 func NewMessageProcessor(consumerWorker *consumer.ConsumerWorker, handler PaymentEventHandler) *MessageProcessor {
-	logger.InfoOutCtx("starting NewMessageProcessor SUCCESSFULLY")
+	logger.Info(context.Background(), "starting NewMessageProcessor SUCCESSFULLY")
 	return &MessageProcessor{
 		consumerWorker: consumerWorker,
 		handler: handler,
@@ -50,22 +50,22 @@ func NewMessageProcessor(consumerWorker *consumer.ConsumerWorker, handler Paymen
 }
 
 func (mp *MessageProcessor) Start(ctx context.Context) error {
-	logger.InfoOutCtx("starting MessageProcessor SUCCESSFULLY")
+	logger.Info(ctx, "starting MessageProcessor SUCCESSFULLY")
 	
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	defer func() { 
 	    if err := mp.consumerWorker.Close(); err != nil {
-            logger.ErrorOutCtx("error closing consumer: %v", zap.Error(err))
+            logger.Error(ctx, "error closing consumer: %v", zap.Error(err))
         }
-		logger.InfoOutCtx("stopping MessageProcessor SUCCESSFULLY")
+		logger.Info(ctx, "stopping MessageProcessor SUCCESSFULLY")
 	}()
 
 	for {
 		select {
 			case <-ctx.Done():
-				logger.InfoOutCtx("received signal to stop message processor")
+				logger.Info(ctx, "received signal to stop message processor")
 				return nil
 			default:
 				ev := mp.consumerWorker.Consumer.Poll(5000) // Poll for Kafka events with a 5-second timeout
@@ -78,9 +78,9 @@ func (mp *MessageProcessor) Start(ctx context.Context) error {
 				case kafka.RevokedPartitions:
 					mp.consumerWorker.Consumer.Unassign()
 				case kafka.PartitionEOF:
-					logger.InfoOutCtx("+++++ > KAFKA reached end of partition", zap.Any("partition", e))
+					logger.Info(ctx, "+++++ > KAFKA reached end of partition", zap.Any("partition", e))
 				case kafka.Error:
-					logger.ErrorOutCtx("+++++ > KAFKA error occurred", zap.Any("error", e))
+					logger.Error(ctx, "+++++ > KAFKA error occurred", zap.Any("error", e))
                     time.Sleep(5 * time.Second)
 				case *kafka.Message:
 					mp.handleMessage(ctx, e)

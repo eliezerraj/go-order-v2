@@ -39,7 +39,7 @@ type ICheckoutUseCase interface {
 }
 
 func NewCheckoutUseCase(orderRepository repository.IOrderRepository, checkoutRepository repository.ICheckoutRepository, paymentModule module.PaymentModule, inventoryModule module.InventoryModule) ICheckoutUseCase {
-	logger.InfoOutCtx("initializing checkout usecase SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing checkout usecase SUCCESSFULLY")
 
 	return &CheckoutUsecase{
 		orderRepository:    orderRepository,

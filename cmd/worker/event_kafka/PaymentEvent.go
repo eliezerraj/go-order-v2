@@ -19,7 +19,7 @@ type PaymentEvent struct {
 }
 
 func NewPaymentEvent(application *application.Application) *PaymentEvent {
-	logger.InfoOutCtx("starting event Kafka worker process SUCCESSFULLY")
+	logger.Info(context.Background(), "starting event Kafka worker process SUCCESSFULLY")
 	return &PaymentEvent{
 		application: application,
 	}

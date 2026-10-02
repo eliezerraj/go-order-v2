@@ -38,7 +38,7 @@ const (
 func NewPaymentModule(cfg *config.Config, 
 						client httpclient.IHTTPClient,
 						authClientService *auth.AuthClientService) PaymentModule {
-	logger.InfoOutCtx("NewPaymentModule called")
+	logger.Info(context.Background(), "NewPaymentModule called")
 
 	return PaymentModule{
 		cfg: cfg,

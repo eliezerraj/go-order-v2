@@ -24,7 +24,7 @@ type IDataProvider interface {
 }
 
 func NewDataProviderRepository(dbConnector connector.IDatabaseConnector) IDataProvider {
-    logger.InfoOutCtx("initializing data provider repository SUCCESSFULLY")
+    logger.Info(context.Background(), "initializing data provider repository SUCCESSFULLY")
 
     return &DataProviderRepository{
         dbConnector: dbConnector,

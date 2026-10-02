@@ -15,9 +15,9 @@ var (
 )
 
 func Run(ctx context.Context, kafkaConsumer config.KafkaConsumer, application *application.Application) {
-	logger.InfoOutCtx("KAFKA starting worker process SUCCESSFULLY")
+	logger.Info(ctx, "KAFKA starting worker process SUCCESSFULLY")
 
 	event_kafka.Run(ctx, kafkaConsumer, application)
 
-	logger.InfoOutCtx("KAFKA worker process finished cleanly SUCCESSFULLY")
+	logger.Info(ctx, "KAFKA worker process finished cleanly SUCCESSFULLY")
 }

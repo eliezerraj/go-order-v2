@@ -19,7 +19,7 @@ type DataProviderController struct {
 }
 
 func NewDataProviderController(dataProviderUsecase usecase.IDataProviderUseCase) *DataProviderController {
-	logger.InfoOutCtx("initializing data provider controller SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing data provider controller SUCCESSFULLY")
 
 	return &DataProviderController{
 		dataProviderUsecase: dataProviderUsecase,

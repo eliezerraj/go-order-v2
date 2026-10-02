@@ -39,7 +39,7 @@ type IOrderUseCase interface {
 }
 
 func NewOrderUseCase(orderRepository repository.IOrderRepository, inventoryModule module.InventoryModule, paymentModule module.PaymentModule) IOrderUseCase {
-	logger.InfoOutCtx("initializing order usecase SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing order usecase SUCCESSFULLY")
 
 	return &OrderUsecase{
 		orderRepository: orderRepository,
