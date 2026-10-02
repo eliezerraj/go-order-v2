@@ -73,6 +73,16 @@ type CreditCardRequest struct {
 	Password string	`json:"password,omitempty"`
 }
 
+type TimeSeriesOrderItemRequest struct {
+	ProductRequest	ProductRequest	`json:"product,omitempty"`
+	Limit		int		`json:"limit,omitempty"`
+	Offset		int		`json:"offset,omitempty"`
+}
+type TimeSeriesOrderItemResponse struct {
+	Response    string	`json:"response"`
+	TimeSeriesOrderItems	any	`json:"time_series_order_items,omitempty"`
+}
+
 // Generic PaymentResponse to handle different types of payment responses
 type PaymentResponse[T any] struct {
     Response string `json:"response"`
@@ -83,3 +93,4 @@ type CheckoutResponse struct {
     Response string         `json:"response"`
     Checkout  any `json:"checkout"`
 }
+

@@ -36,7 +36,7 @@ type IOrderRepository interface {
 }
 
 func NewOrderRepository(dbConnector connector.IDatabaseConnector) IOrderRepository {
-	logger.InfoOutCtx("initializing order repository SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing order repository SUCCESSFULLY")
 
 	return &OrderRepository{
 		dbConnector: dbConnector,
@@ -44,11 +44,11 @@ func NewOrderRepository(dbConnector connector.IDatabaseConnector) IOrderReposito
 }
 
 func (p *OrderRepository) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error) {
-	logger.InfoOutCtx("order repository BeginTx called")
+	logger.Info(ctx, "order repository BeginTx called")
 
 	tx, err := p.dbConnector.Writer().BeginTx(ctx, opts)
 	if err != nil {
-		logger.ErrorOutCtx("order repository BeginTx failed", zap.Error(err))
+		logger.Error(ctx, "order repository BeginTx failed", zap.Error(err))
 		return nil, err
 	}
 

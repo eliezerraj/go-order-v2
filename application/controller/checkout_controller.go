@@ -21,7 +21,7 @@ type CheckoutController struct {
 }
 
 func NewCheckoutController(checkoutUseCase usecase.ICheckoutUseCase) *CheckoutController {
-	logger.InfoOutCtx("initializing checkout controller SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing checkout controller SUCCESSFULLY")
 
 	schema := validator.Schema{
 		Validate: func(ctx context.Context, data any) error {

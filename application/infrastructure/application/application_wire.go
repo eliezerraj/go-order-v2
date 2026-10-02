@@ -21,20 +21,23 @@ import (
 type Application struct {
 	OrderController *controller.OrderController
 	CheckoutController *controller.CheckoutController
+	DataProviderController *controller.DataProviderController
 }
 
 type UseCase struct {
 	OrderUsecase usecase.IOrderUseCase
 	CheckoutUsecase usecase.ICheckoutUseCase
+	DataProviderUsecase usecase.IDataProviderUseCase
 }
 
 type Repository struct {
 	OrderRepository repository.IOrderRepository
 	CheckoutRepository repository.ICheckoutRepository
+	DataProviderRepository repository.IDataProvider
 }
 
 func NewApplication(cfg *config.Config) (*Application, error) {
-	logger.InfoOutCtx("initializing application SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing application SUCCESSFULLY")
 
 	// Initialize database connector Reader.
 	readerConfig := connector.ConnectorConfig{
@@ -58,32 +61,33 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 		HealthCheckPeriod: cfg.Database.ConnIdleTime * time.Minute / 2,
 	}
 
-	logger.InfoOutCtx("readerConfig initialized SUCCESSFULLY", zap.Any("readerConfig", readerConfig), zap.Any("writerConfig", writerConfig))
+	logger.Info(context.Background(), "readerConfig initialized SUCCESSFULLY", zap.Any("readerConfig", readerConfig), zap.Any("writerConfig", writerConfig))
 
 	// Initialize database connector
 	dbConnector, err := connector.NewDatabaseConnector(cfg.App.Name, readerConfig, writerConfig)
 	if err != nil {
-		logger.FatalOutCtx("failed to initialize database connector")
+		logger.Fatal(context.Background(), "failed to initialize database connector")
 		return nil, err
 	}
 	
-	logger.InfoOutCtx("dbConnector initialized SUCCESSFULLY", zap.Any("dbConnector", dbConnector))
+	logger.Info(context.Background(), "dbConnector initialized SUCCESSFULLY", zap.Any("dbConnector", dbConnector))
 	
 	pgConnection := &connector.PgConnection{}
 	_, err = pgConnection.NewPool(context.Background(), readerConfig)
 	if err != nil {
-		logger.FatalOutCtx("failed to create database pool")
+		logger.Fatal(context.Background(), "failed to create database pool")
 		return nil, err
 	}
 	err = pgConnection.Ping(context.Background())
 	if err != nil {
-		logger.FatalOutCtx("failed to ping pg connection")
+		logger.Fatal(context.Background(), "failed to ping pg connection")
 		return nil, err
 	}
 
 	// Repository initialization
 	orderRepository := repository.NewOrderRepository(dbConnector)
 	checkoutRepository := repository.NewCheckoutRepository(dbConnector)
+	dataProviderRepository := repository.NewDataProviderRepository(dbConnector)
 	
 	// Create the forwards modules.
 	httpConfig := &httpclient.HttpConfig{
@@ -120,13 +124,18 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	// UseCase initialization
 	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule, paymentModule)
 	checkoutUsecase := usecase.NewCheckoutUseCase(orderRepository, checkoutRepository, paymentModule, inventoryModule)
+	
+	// UseCase for DataProvider initialization
+	dataProviderUsecase := usecase.NewDataProviderUseCase(dataProviderRepository, inventoryModule)
 
 	// Controller initialization
 	orderController := controller.NewOrderController(orderUsecase)
 	checkoutController := controller.NewCheckoutController(checkoutUsecase)
+	dataProviderController := controller.NewDataProviderController(dataProviderUsecase)
 
 	return &Application{
 		OrderController: orderController,
 		CheckoutController: checkoutController,
+		DataProviderController: dataProviderController,
 	}, nil
 }

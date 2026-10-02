@@ -33,7 +33,7 @@ type ICheckoutRepository interface {
 }
 
 func NewCheckoutRepository(dbConnector connector.IDatabaseConnector) ICheckoutRepository {
-	logger.InfoOutCtx("initializing checkout repository SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing checkout repository SUCCESSFULLY")
 
 	return &CheckoutRepository{
 		dbConnector: dbConnector,
@@ -41,11 +41,11 @@ func NewCheckoutRepository(dbConnector connector.IDatabaseConnector) ICheckoutRe
 }
 
 func (p *CheckoutRepository) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error) {
-	logger.InfoOutCtx("checkout repository BeginTx called")
+	logger.Info(ctx, "checkout repository BeginTx called")
 
 	tx, err := p.dbConnector.Writer().BeginTx(ctx, opts)
 	if err != nil {
-		logger.ErrorOutCtx("checkout repository BeginTx failed", zap.Error(err))
+		logger.Error(ctx, "checkout repository BeginTx failed", zap.Error(err))
 		return nil, err
 	}
 
