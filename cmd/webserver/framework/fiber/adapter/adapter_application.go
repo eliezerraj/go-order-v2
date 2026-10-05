@@ -3,8 +3,11 @@ package adapter
 import (
 	"context"
 	"strconv"
+	"errors"
+
 	"go.uber.org/zap"
 
+	"github.com/go-order-v2/application/domain/apperrors"
 	"github.com/go-order-v2/application/config"
 	"github.com/go-order-v2/application/infrastructure/application"
 	"github.com/go-order-v2/application/domain/external"
@@ -61,11 +64,23 @@ func (a *ApplicationAdapter) OrderGet(ctxFiber fiber.Ctx) error {
 
 	res, err := a.application.OrderController.OrderGet(ctx, order)
 	if err != nil {
-		logger.Error(ctx, "failed to get order ", zap.Error(err))
+		var statusCode int
+		var statusCodeMessage string
+
+		if errors.Is(err, apperrors.ErrNotFound) {
+			logger.Warn(ctx, "order not found", zap.Error(err))
+			statusCode = fiber.StatusNotFound
+			statusCodeMessage = fiber.ErrNotFound.Message
+		} else {
+			logger.Error(ctx, "failed to get order ", zap.Error(err))
+			statusCode = fiber.StatusInternalServerError
+			statusCodeMessage = fiber.ErrInternalServerError.Message
+		}
+
 		errorResponse := external.NewResponseError(ctx,
-			fiber.StatusNotFound,
-			fiber.ErrNotFound,
-			fiber.ErrNotFound.Message,
+			statusCode,
+			fiber.NewError(statusCode),
+			statusCodeMessage,
 			"failed to get order",
 			err.Error(),
 			external.BUSSINESS_ERROR)
@@ -111,11 +126,24 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber fiber.Ctx) error {
 
 	res, err := a.application.OrderController.OrderAdd(ctx, order)
 	if err != nil {
-		logger.Error(ctx, "failed to add order", zap.Error(err))
+		
+		var statusCode int
+		var statusCodeMessage string
+
+		if errors.Is(err, apperrors.ErrNotFound) {
+			logger.Warn(ctx, "order not found", zap.Error(err))
+			statusCode = fiber.StatusNotFound
+			statusCodeMessage = fiber.ErrNotFound.Message
+		} else {
+			logger.Error(ctx, "failed to add order ", zap.Error(err))
+			statusCode = fiber.StatusInternalServerError
+			statusCodeMessage = fiber.ErrInternalServerError.Message
+		}
+
 		errorResponse := external.NewResponseError(ctx,
-			fiber.StatusInternalServerError,
-			fiber.ErrInternalServerError,
-			fiber.ErrInternalServerError.Message,
+			statusCode,
+			fiber.NewError(statusCode),
+			statusCodeMessage,
 			"failed to add order",
 			err.Error(),
 			external.BUSSINESS_ERROR)
@@ -164,11 +192,23 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber fiber.Ctx) error {
 
 	res, err := a.application.CheckoutController.CheckoutGet(ctx, checkout)
 	if err != nil {
-		logger.Error(ctx, "failed to get checkout ", zap.Error(err))
+
+		var statusCode int
+		var statusCodeMessage string
+
+		if errors.Is(err, apperrors.ErrNotFound) {
+			logger.Warn(ctx, "checkout not found", zap.Error(err))
+			statusCode = fiber.StatusNotFound
+			statusCodeMessage = fiber.ErrNotFound.Message
+		} else {
+			logger.Error(ctx, "failed to get checkout ", zap.Error(err))
+			statusCode = fiber.StatusInternalServerError
+			statusCodeMessage = fiber.ErrInternalServerError.Message
+		}
 		errorResponse := external.NewResponseError(ctx,
-			fiber.StatusNotFound,
-			fiber.ErrNotFound,
-			fiber.ErrNotFound.Message,
+			statusCode,
+			fiber.NewError(statusCode),
+			statusCodeMessage,
 			"failed to get checkout",
 			err.Error(),
 			external.BUSSINESS_ERROR)
@@ -218,11 +258,23 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber fiber.Ctx) error {
 
 	res, err := a.application.CheckoutController.CheckoutAdd(ctx, checkout)
 	if err != nil {
-		logger.Error(ctx, "failed to add checkout", zap.Error(err))
+
+		var statusCode int
+		var statusCodeMessage string
+
+		if errors.Is(err, apperrors.ErrNotFound) {
+			logger.Warn(ctx, "checkout not found", zap.Error(err))
+			statusCode = fiber.StatusNotFound
+			statusCodeMessage = fiber.ErrNotFound.Message
+		} else {
+			logger.Error(ctx, "failed to add checkout ", zap.Error(err))
+			statusCode = fiber.StatusInternalServerError
+			statusCodeMessage = fiber.ErrInternalServerError.Message
+		}
 		errorResponse := external.NewResponseError(ctx,
-			fiber.StatusInternalServerError,
-			fiber.ErrInternalServerError,
-			fiber.ErrInternalServerError.Message,
+			statusCode,
+			fiber.NewError(statusCode),
+			statusCodeMessage,
 			"failed to add checkout",
 			err.Error(),
 			external.BUSSINESS_ERROR)
@@ -280,11 +332,24 @@ func (a *ApplicationAdapter) TimeSeriesOrderItemsGet(ctxFiber fiber.Ctx) error {
 
 	res, err := a.application.DataProviderController.TimeSeriesOrderItemsGet(ctx, timeSeriesOrderItemRequest)
 	if err != nil {
-		logger.Error(ctx, "failed to get time series order items", zap.Error(err))
+
+		var statusCode int
+		var statusCodeMessage string
+		
+		if errors.Is(err, apperrors.ErrNotFound) {
+			statusCode = fiber.StatusNotFound
+			statusCodeMessage = fiber.ErrNotFound.Message
+			logger.Warn(ctx, "time series order items not found", zap.Error(err))
+		} else {
+			statusCode = fiber.StatusInternalServerError
+			statusCodeMessage = fiber.ErrInternalServerError.Message
+			logger.Error(ctx, "failed to get time series order items", zap.Error(err))
+		}
+
 		errorResponse := external.NewResponseError(ctx,
-			fiber.StatusInternalServerError,
-			fiber.ErrInternalServerError,
-			fiber.ErrInternalServerError.Message,
+			statusCode,
+			fiber.NewError(statusCode),
+			statusCodeMessage,
 			"failed to get time series order items",
 			err.Error(),
 			external.BUSSINESS_ERROR)

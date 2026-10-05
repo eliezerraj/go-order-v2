@@ -3,7 +3,6 @@ package repository
 import (
 	"time"
 	"context"
-	"errors"
 
 	"go.uber.org/zap"
 
@@ -11,6 +10,7 @@ import (
 
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/domain/apperrors"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/database/connector"
@@ -45,7 +45,7 @@ func (p *CheckoutRepository) BeginTx(ctx context.Context, opts pgx.TxOptions) (p
 
 	tx, err := p.dbConnector.Writer().BeginTx(ctx, opts)
 	if err != nil {
-		logger.Error(ctx, "checkout repository BeginTx failed", zap.Error(err))
+		logger.Debug(ctx, "checkout repository BeginTx failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -73,7 +73,7 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "checkout repository CheckoutGet failed", zap.Error(err))
+			logger.Debug(ctx, "checkout repository CheckoutGet failed", zap.Error(err))
 		}
         histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
             attribute.String("operation", "CheckoutGet"),
@@ -109,9 +109,7 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 			return nil, err
 		}
 	} else {
-		logger.Warn(ctx, "not found", zap.String("order_number", checkout.Order.OrderNumber))
-		err = errors.New("order not found")
-		return nil, err
+		return nil, fmt.Errorf("order: %s: %w", checkout.Order.OrderNumber, apperrors.ErrNotFound)
 	}
 
 	return &checkout, nil
@@ -138,7 +136,7 @@ func (p *CheckoutRepository) CheckoutPut(ctx context.Context, tx pgx.Tx, checkou
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "checkout repository CheckoutPut failed", zap.Error(err))
+			logger.Debug(ctx, "checkout repository CheckoutPut failed", zap.Error(err))
 		}
         histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
             attribute.String("operation", "CheckoutPut"),
@@ -159,7 +157,7 @@ func (p *CheckoutRepository) CheckoutPut(ctx context.Context, tx pgx.Tx, checkou
 
 	rowsAffected = row.RowsAffected()
 	if rowsAffected == 0 {
-		logger.Warn(ctx, "checkout repository CheckoutPut: no rows affected, order not found", zap.String("order_number", checkout.Order.OrderNumber))
+		logger.Debug(ctx, "checkout repository CheckoutPut: no rows affected, order not found", zap.String("order_number", checkout.Order.OrderNumber))
 		return 0, nil
 	}
 

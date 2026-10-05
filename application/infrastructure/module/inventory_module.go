@@ -18,6 +18,7 @@ import (
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/domain/apperrors"
 )
 
 const RequestIDHeaderName = "x-request-id"
@@ -69,7 +70,7 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 		return nil, err
 	}
 	
-	// Set headers for the request. the const are in payment_module.go file
+	// Set headers for the request. the const are in inventory_module.go file
 	xrequestid, ok := ctx.Value(RequestIDHeaderName).(string)
 	if !ok {
 		xrequestid = "not-informed"
@@ -101,8 +102,8 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 	case http.StatusOK:
 		// Continue processing
 	case http.StatusNotFound:
-		logger.Error(ctx, "Inventory service returned 404 Not Found")
-		return nil, fmt.Errorf("inventory service returned status: %d", resp.StatusCode)
+		logger.Debug(ctx, "Inventory service returned with status", zap.Int("status", resp.StatusCode))
+		return nil, fmt.Errorf("inventory service returned with status: %d: product SKU: %s: %w", resp.StatusCode, product.Sku, apperrors.ErrNotFound)
 	default:
 		logger.Error(ctx, "Inventory service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("inventory service returned status: %d", resp.StatusCode)

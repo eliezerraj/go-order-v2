@@ -42,7 +42,7 @@ func (u *DataProviderUseCase) TimeSeriesOrderItemsGet(ctx context.Context, produ
 
 	res_inventory, err := u.inventoryModule.GetInventory(ctx, product)
 	if err != nil {
-		logger.Error(ctx, "dataprovider usecase TimeSeriesOrderItemsGet failed to check inventory", zap.Error(err))
+		logger.Debug(ctx, "dataprovider usecase TimeSeriesOrderItemsGet failed to check inventory", zap.Error(err))
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func (u *DataProviderUseCase) TimeSeriesOrderItemsGet(ctx context.Context, produ
 	// Get the order from the repository
 	res_timeseries, err := u.dataproviderRepository.TimeSeriesOrderItemsGet(ctx, product, limit, offset)
 	if err != nil {
-		logger.Error(ctx, "dataprovider usecase TimeSeriesOrderItemsGet failed", zap.Error(err))
+		logger.Debug(ctx, "dataprovider usecase TimeSeriesOrderItemsGet failed", zap.Error(err))
 		return nil, err
 	}
 

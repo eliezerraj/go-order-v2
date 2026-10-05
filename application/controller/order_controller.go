@@ -88,7 +88,7 @@ func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderReques
 	// Call the use case to add the order
 	res, err := o.orderUseCase.OrderAdd(ctx, order)
 	if err != nil {
-		logger.Error(ctx, "order controller OrderAdd failed", zap.Error(err))
+		logger.Debug(ctx, "order controller OrderAdd failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -108,7 +108,7 @@ func (o *OrderController) OrderGet(ctx context.Context, req external.OrderReques
 
 	res, err := o.orderUseCase.OrderGet(ctx, order)
 	if err != nil {
-		logger.Error(ctx, "order controller OrderGet failed", zap.Error(err))
+		logger.Debug(ctx, "order controller OrderGet failed", zap.Error(err))
 		return nil, err
 	}
 

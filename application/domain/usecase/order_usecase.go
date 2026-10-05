@@ -103,7 +103,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 		// Call REST API to get product details from the inventory module
 		res_inventory, err := o.inventoryModule.GetInventory(ctx, item.Product)
 		if err != nil {
-			logger.Error(ctx, "order usecase OrderAdd failed to check inventory", zap.Error(err))
+			logger.Debug(ctx, "order usecase OrderAdd failed to check inventory", zap.Error(err))
 			return nil, err
 		}
 
@@ -136,7 +136,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 	// Add the order to the repository
 	res_order, err = o.orderRepository.OrderAdd(ctx, tx, order)
 	if err != nil {
-		logger.Error(ctx, "order usecase OrderAdd failed", zap.Error(err))
+		logger.Debug(ctx, "order usecase OrderAdd failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -152,7 +152,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 		// Add the order item to the repository
 		res_order_item, err := o.orderRepository.OrderItemAdd(ctx, tx, item)
 		if err != nil {
-			logger.Error(ctx, "order usecase OrderAdd failed to add order item", zap.Error(err))
+			logger.Debug(ctx, "order usecase OrderAdd failed to add order item", zap.Error(err))
 			return nil, err
 		}
 		item.ID = res_order_item.ID
@@ -179,14 +179,14 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	// Get the order from the repository
 	res_order, err := o.orderRepository.OrderGet(ctx, order)
 	if err != nil {
-		logger.Error(ctx, "order usecase OrderGet failed", zap.Error(err))
+		logger.Debug(ctx, "order usecase OrderGet failed", zap.Error(err))
 		return nil, err
 	}
 
 	// Get order items for the order
 	res_order_itens, err := o.orderRepository.OrderItensGet(ctx, *res_order)
 	if err != nil {
-		logger.Error(ctx, "order usecase OrderGet failed to get order items", zap.Error(err))
+		logger.Debug(ctx, "order usecase OrderGet failed to get order items", zap.Error(err))
 		return nil, err
 	}
 
@@ -194,7 +194,7 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	for _, item := range *res_order_itens {
 		res_product, err := o.inventoryModule.GetInventory(ctx, item.Product)
 		if err != nil {
-			logger.Error(ctx, "order usecase OrderGet failed to check inventory", zap.Error(err))
+			logger.Debug(ctx, "order usecase OrderGet failed to check inventory", zap.Error(err))
 			return nil, err
 		}
 		item.Product = *res_product
@@ -210,7 +210,7 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	}
 	res_payments, err := o.paymentModule.PaymentGet(ctx, paymentRequest)
 	if err != nil {
-		logger.Error(ctx, "order usecase OrderGet failed to get payment details", zap.Error(err))
+		logger.Debug(ctx, "order usecase OrderGet failed to get payment details", zap.Error(err))
 		return nil, err
 	}
 

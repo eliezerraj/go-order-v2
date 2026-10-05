@@ -1,15 +1,17 @@
 package repository
 
 import (
-	"time"
+	"fmt"
 	"context"
-	"errors"
+	"time"
+
 	"go.uber.org/zap"
 
 	"github.com/jackc/pgx/v5"
 
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/domain/apperrors"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/database/connector"
@@ -48,7 +50,7 @@ func (p *OrderRepository) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.
 
 	tx, err := p.dbConnector.Writer().BeginTx(ctx, opts)
 	if err != nil {
-		logger.Error(ctx, "order repository BeginTx failed", zap.Error(err))
+		logger.Debug(ctx, "order repository BeginTx failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -76,7 +78,7 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "order repository OrderGet failed", zap.Error(err))
+			logger.Debug(ctx, "order repository OrderGet failed", zap.Error(err))
 		}
         histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
             attribute.String("operation", "OrderGet"),
@@ -112,9 +114,7 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res
 			return nil, err
 		}
 	} else {
-		logger.Warn(ctx, "not found", zap.Int("order_id", order.ID))
-		err = errors.New("order not found")
-		return nil, err
+		return nil, fmt.Errorf("order: %s: %w", order.OrderNumber, apperrors.ErrNotFound)
 	}
 
 	return &order, nil
@@ -141,7 +141,7 @@ func (p *OrderRepository) OrderItensGet(ctx context.Context, order entity.Order)
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "order repository OrderItensGet failed", zap.Error(err))
+			logger.Debug(ctx, "order repository OrderItensGet failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderItensGet"),
@@ -207,7 +207,7 @@ func (p *OrderRepository) OrderAdd(ctx context.Context, tx pgx.Tx, order entity.
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "order repository OrderAdd failed", zap.Error(err))
+			logger.Debug(ctx, "order repository OrderAdd failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderAdd"),
@@ -257,7 +257,7 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "order repository OrderItemAdd failed", zap.Error(err))
+			logger.Debug(ctx, "order repository OrderItemAdd failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderItemAdd"),
@@ -307,7 +307,7 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "order repository OrderPut failed", zap.Error(err))
+			logger.Debug(ctx, "order repository OrderPut failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderPut"),
@@ -327,7 +327,7 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 
 	rowsAffected = row.RowsAffected()
 	if rowsAffected == 0 {
-		logger.Warn(ctx, "order repository OrderPut: no rows affected, order not found", zap.Int("order_id", order.ID))
+		logger.Debug(ctx, "order repository OrderPut: no rows affected, order not found", zap.Int("order_id", order.ID))
 		return 0, nil
 	}
 
@@ -355,7 +355,7 @@ func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Error(ctx, "order repository OrderItemPut failed", zap.Error(err))
+			logger.Debug(ctx, "order repository OrderItemPut failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderItemPut"),
@@ -375,7 +375,7 @@ func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem
 
 	rowsAffected = row.RowsAffected()
 	if rowsAffected == 0 {
-		logger.Warn(ctx, "order repository OrderItemPut: no rows affected, order item not found", zap.Int("order_item_id", orderItem.ID))
+		logger.Debug(ctx, "order repository OrderItemPut: no rows affected, order item not found", zap.Int("order_item_id", orderItem.ID))
 		return 0, nil
 	}
 

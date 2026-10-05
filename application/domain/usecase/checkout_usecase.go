@@ -96,13 +96,13 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	//-----------------------------------------------------------
 	res_order, err := c.orderRepository.OrderGet(ctx, checkout.Order)
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutAdd failed to get order", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutAdd failed to get order", zap.Error(err))
 		return nil, err
 	}
 
 	res_order_itens, err := c.orderRepository.OrderItensGet(ctx, *res_order)
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutAdd failed to get order items", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutAdd failed to get order items", zap.Error(err))
 		return nil, err
 	}
 
@@ -122,7 +122,7 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 
 		err := c.inventoryModule.InventoryPatch(ctx, item.Product)
 		if err != nil {
-			logger.Error(ctx, "checkout usecase CheckoutAdd failed to update inventory", zap.Error(err))
+			logger.Debug(ctx, "checkout usecase CheckoutAdd failed to update inventory", zap.Error(err))
 			return nil, err
 		}
 	}
@@ -136,7 +136,7 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 
 	rowsAffected, err := c.orderRepository.OrderPut(ctx, tx, *res_order)
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutAdd failed to update order status", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutAdd failed to update order status", zap.Error(err))
 		return nil, err
 	}
 	if rowsAffected == 0 {
@@ -153,7 +153,7 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 
 		rowsAffected, err := c.orderRepository.OrderItemPut(ctx, tx, item)
 		if err != nil {
-			logger.Error(ctx, "checkout usecase CheckoutAdd failed to update order item status", zap.Error(err))
+			logger.Debug(ctx, "checkout usecase CheckoutAdd failed to update order item status", zap.Error(err))
 			return nil, err
 		}
 		if rowsAffected == 0 {
@@ -201,7 +201,7 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	// Call the payment module to process the payment
 	res_payment, err := c.paymentModule.PaymentAdd(ctx, paymentRequest)
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutAdd failed in payment module", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutAdd failed in payment module", zap.Error(err))
 		return nil, err
 	}
 
@@ -225,7 +225,7 @@ func (c *CheckoutUsecase) CheckoutGet(ctx context.Context, checkout entity.Check
 	// Get the order from the repository
 	res_checkout, err := c.checkoutRepository.CheckoutGet(ctx, checkout)
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutGet failed", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutGet failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -243,7 +243,7 @@ func (c *CheckoutUsecase) CheckoutPut(ctx context.Context, checkout entity.Check
 	// Start a new transaction
 	tx, err := c.checkoutRepository.BeginTx(ctx, pgx.TxOptions{ IsoLevel: pgx.ReadCommitted, AccessMode: pgx.ReadWrite })
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutPut failed to begin transaction", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutPut failed to begin transaction", zap.Error(err))
 		return nil, err
 	}
 
@@ -269,7 +269,7 @@ func (c *CheckoutUsecase) CheckoutPut(ctx context.Context, checkout entity.Check
 
 	upd_checkout, err := c.checkoutRepository.CheckoutPut(ctx, tx, checkout)
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutPut failed", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutPut failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -283,7 +283,7 @@ func (c *CheckoutUsecase) CheckoutPut(ctx context.Context, checkout entity.Check
 	// --------------------------------------------
 	res_order_itens, err := c.orderRepository.OrderItensGet(ctx, checkout.Order)
 	if err != nil {
-		logger.Error(ctx, "checkout usecase CheckoutAdd failed to get order items", zap.Error(err))
+		logger.Debug(ctx, "checkout usecase CheckoutPut failed to get order items", zap.Error(err))
 		return nil, err
 	}
 
@@ -292,7 +292,7 @@ func (c *CheckoutUsecase) CheckoutPut(ctx context.Context, checkout entity.Check
 		orderItem.Status = checkout.Order.Status
 		rowsAffected, err := c.orderRepository.OrderItemPut(ctx, tx, orderItem)
 		if err != nil {
-			logger.Error(ctx, "checkout usecase CheckoutPut failed to update order item", zap.Error(err))
+			logger.Debug(ctx, "checkout usecase CheckoutPut failed to update order item", zap.Error(err))
 			return nil, err
 		}
 

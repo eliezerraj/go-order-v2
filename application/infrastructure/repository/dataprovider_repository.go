@@ -109,7 +109,7 @@ func (r *DataProviderRepository) TimeSeriesOrderItemsGet(ctx context.Context, pr
     }
 
     if timeSeriesOrderItem == nil {
-        logger.Warn(ctx, "data provider repository TimeSeriesOrderItemsGet returned no results")
+        logger.Debug(ctx, "data provider repository TimeSeriesOrderItemsGet returned no results")
         timeSeriesOrderItem = &entity.TimeSeriesOrderItem{
             Product:        product,
             TimeSeriesData: []*entity.TimeSeriesData{},

@@ -82,7 +82,7 @@ func (c *CheckoutController) CheckoutAdd(ctx context.Context, req external.Check
 	// Call the use case to add the order
 	res, err := c.checkoutUseCase.CheckoutAdd(ctx, checkout)
 	if err != nil {
-		logger.Error(ctx, "checkout controller CheckoutAdd failed", zap.Error(err))
+		logger.Debug(ctx, "checkout controller CheckoutAdd failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -103,7 +103,7 @@ func (c *CheckoutController) CheckoutGet(ctx context.Context, req external.Check
 
 	res, err := c.checkoutUseCase.CheckoutGet(ctx, checkout)
 	if err != nil {
-		logger.Error(ctx, "checkout controller CheckoutGet failed", zap.Error(err))
+		logger.Debug(ctx, "checkout controller CheckoutGet failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -156,7 +156,7 @@ func (c *CheckoutController) CheckoutPut(ctx context.Context, req external.Check
 
 	res, err := c.checkoutUseCase.CheckoutPut(ctx, checkout)
 	if err != nil {
-		logger.Error(ctx, "checkout controller CheckoutPut failed", zap.Error(err))
+		logger.Debug(ctx, "checkout controller CheckoutPut failed", zap.Error(err))
 		return nil, err
 	}
 
