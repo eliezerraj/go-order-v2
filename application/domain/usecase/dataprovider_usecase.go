@@ -56,5 +56,8 @@ func (u *DataProviderUseCase) TimeSeriesOrderItemsGet(ctx context.Context, produ
 		return nil, err
 	}
 
+	// Set the product in the time series response to include the inventory information.
+	res_timeseries.Product = product
+
 	return res_timeseries, nil
 }

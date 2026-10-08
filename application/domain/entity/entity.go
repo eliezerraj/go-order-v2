@@ -38,6 +38,7 @@ type Product struct {
 	Sku			string		`json:"sku,omitempty"`
 	Type		string 		`json:"type,omitempty"`
 	Name		string 		`json:"name,omitempty"`
+	LeadTime	int			`json:"lead_time,omitempty"`
 	Status		string 		`json:"status,omitempty"`
 	Price		*Price		`json:"price,omitempty"`
 	Inventory	*Inventory	`json:"inventory,omitempty"`	
