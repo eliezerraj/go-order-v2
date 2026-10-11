@@ -55,20 +55,22 @@ func (r *DataProviderRepository) TimeSeriesOrderItemsGet(ctx context.Context, pr
     // Get a reader connection from the database connector
 	connectorReader := r.dbConnector.Reader()
     
-    query := `select oi.fk_product_id, 
-                    created_at::date AS date_part,
-                    EXTRACT(HOUR FROM created_at) AS hour_part,
-                    count(oi.fk_product_id) as count,
-                    sum (oi.quantity) as sum_quantity,
-                    sum(oi.amount) as sum_amount,
-                    sum(oi.discount) as sum_discount
-                from order_item oi
-                where oi.fk_product_id = $1
-                group by oi.id
-                order by oi.id asc
-                limit $2 offset $3`
+    query := `select * 
+                from ( select oi.fk_product_id, 
+                            created_at,
+                            EXTRACT(HOUR FROM created_at) AS hour_part,
+                            count(oi.fk_product_id) as count,
+                            sum (oi.quantity) as sum_quantity,
+                            sum(oi.amount) as sum_amount,
+                            sum(oi.discount) as sum_discount
+                        from order_item oi
+                        where oi.fk_product_id = $1
+                        group by oi.id
+                        order by oi.created_at desc
+                        limit $2
+                ) order by created_at asc`
 
-    rows, err := connectorReader.Query(ctx, query, product.ID, limit, offset)
+    rows, err := connectorReader.Query(ctx, query, product.ID, limit)
     if err != nil {
         return nil, err
     }
@@ -76,19 +78,19 @@ func (r *DataProviderRepository) TimeSeriesOrderItemsGet(ctx context.Context, pr
 
     var timeSeriesOrderItem *entity.TimeSeriesOrderItem
     for rows.Next() {
-        var datePart time.Time
+        var created_at time.Time
         var hourPart int
         var count int
         var sumQuantity int
         var sumAmount float64
         var sumDiscount float64
 
-        if err := rows.Scan(&product.ID, &datePart, &hourPart, &count, &sumQuantity, &sumAmount, &sumDiscount); err != nil {
+        if err := rows.Scan(&product.ID, &created_at, &hourPart, &count, &sumQuantity, &sumAmount, &sumDiscount); err != nil {
             return nil, err
         }
 
         timeSeriesData := &entity.TimeSeriesData{
-            DatePart: datePart,
+            DatePart: created_at,
             HourPart: hourPart,
             Count:    count,
             SumQuantity: sumQuantity,
