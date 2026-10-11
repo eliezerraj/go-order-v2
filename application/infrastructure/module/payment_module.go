@@ -18,6 +18,7 @@ import (
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/domain/apperrors"
 )
 
 type PaymentModule struct {
@@ -107,8 +108,8 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 	case http.StatusCreated:
 		// Continue processing
 	case http.StatusNotFound:
-		logger.Error(ctx, "Payment service returned 404 Not Found")
-		return nil, fmt.Errorf("payment service returned status: %d", resp.StatusCode)
+		logger.Debug(ctx, "Payment service returned with status", zap.Int("status", resp.StatusCode))
+		return nil, fmt.Errorf("payment service returned with status: %d: %w", resp.StatusCode, apperrors.ErrNotFound)
 	default:
 		logger.Error(ctx, "Payment service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("payment service returned status: %d", resp.StatusCode)
@@ -175,8 +176,8 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 	case http.StatusCreated:
 		// Continue processing
 	case http.StatusNotFound:
-		logger.Error(ctx, "Payment service returned 404 Not Found")
-		return nil, fmt.Errorf("payment service returned status: %d", resp.StatusCode)
+		logger.Debug(ctx, "Payment service returned 404 Not Found")
+		return nil, fmt.Errorf("payment service returned with status: %d: order ID: %v: %w", resp.StatusCode, paymentRequest.Order.ID, apperrors.ErrNotFound)
 	default:
 		logger.Error(ctx, "Payment service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("payment service returned status: %d", resp.StatusCode)

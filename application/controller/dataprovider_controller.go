@@ -42,7 +42,7 @@ func (c *DataProviderController) TimeSeriesOrderItemsGet(ctx context.Context, re
 
 	res, err := c.dataProviderUsecase.TimeSeriesOrderItemsGet(ctx, product, limit, offset)
 	if err != nil {
-		logger.Error(ctx, "error executing TimeSeriesOrderItemsGet controller", zap.Error(err))
+		logger.Debug(ctx, "error executing TimeSeriesOrderItemsGet controller", zap.Error(err))
 		return nil, err
 	}
 
