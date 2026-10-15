@@ -19,6 +19,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type ApplicationAdapter struct {
@@ -84,6 +85,9 @@ func (a *ApplicationAdapter) OrderGet(ctxFiber fiber.Ctx) error {
 			"failed to get order",
 			err.Error(),
 			external.BUSSINESS_ERROR)
+		span.SetAttributes(
+				attribute.Int("http.response.status_code", statusCode),
+		)
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
@@ -91,7 +95,9 @@ func (a *ApplicationAdapter) OrderGet(ctxFiber fiber.Ctx) error {
 		Response: "Order retrieved successfully",
 		Order: res,
 	}
-
+	span.SetAttributes(
+		attribute.Int("http.response.status_code", fiber.StatusOK),
+	)
 	return ctxFiber.Status(fiber.StatusOK).JSON(resp)
 }
 
@@ -147,6 +153,9 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber fiber.Ctx) error {
 			"failed to add order",
 			err.Error(),
 			external.BUSSINESS_ERROR)
+		span.SetAttributes(
+				attribute.Int("http.response.status_code", statusCode),
+		)
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
@@ -155,6 +164,9 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber fiber.Ctx) error {
 		Order: res,
 	}
 
+	span.SetAttributes(
+		attribute.Int("http.response.status_code", fiber.StatusCreated),
+	)
 	return ctxFiber.Status(fiber.StatusCreated).JSON(resp)
 }
 
@@ -212,6 +224,9 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber fiber.Ctx) error {
 			"failed to get checkout",
 			err.Error(),
 			external.BUSSINESS_ERROR)
+		span.SetAttributes(
+				attribute.Int("http.response.status_code", statusCode),
+		)
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
@@ -219,7 +234,9 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber fiber.Ctx) error {
 		Response: "Checkout retrieved successfully",
 		Checkout: res,
 	}
-
+	span.SetAttributes(
+		attribute.Int("http.response.status_code", fiber.StatusOK),
+	)
 	return ctxFiber.Status(fiber.StatusOK).JSON(resp)
 }
 
@@ -253,6 +270,9 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber fiber.Ctx) error {
 			"failed to parse request body",
 			err.Error(),
 			external.BUSSINESS_ERROR)
+		span.SetAttributes(
+				attribute.Int("http.response.status_code", fiber.StatusBadRequest),
+		)
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
@@ -278,6 +298,9 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber fiber.Ctx) error {
 			"failed to add checkout",
 			err.Error(),
 			external.BUSSINESS_ERROR)
+		span.SetAttributes(
+				attribute.Int("http.response.status_code", statusCode),
+		)
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
@@ -285,7 +308,9 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber fiber.Ctx) error {
 		Response: "Checkout added successfully",
 		Checkout: res,
 	}
-
+	span.SetAttributes(
+		attribute.Int("http.response.status_code", fiber.StatusCreated),
+	)
 	return ctxFiber.Status(fiber.StatusCreated).JSON(resp)
 }
 
@@ -353,6 +378,9 @@ func (a *ApplicationAdapter) TimeSeriesOrderItemsGet(ctxFiber fiber.Ctx) error {
 			"failed to get time series order items",
 			err.Error(),
 			external.BUSSINESS_ERROR)
+		span.SetAttributes(
+				attribute.Int("http.response.status_code", statusCode),
+		)
 		return ctxFiber.Status(errorResponse.StatusCode).JSON(errorResponse)
 	}
 
@@ -360,6 +388,8 @@ func (a *ApplicationAdapter) TimeSeriesOrderItemsGet(ctxFiber fiber.Ctx) error {
 		Response: "Time series order items retrieved successfully",
 		TimeSeriesOrderItems: res,
 	}
-
+	span.SetAttributes(
+		attribute.Int("http.response.status_code", fiber.StatusOK),
+	)
 	return ctxFiber.Status(fiber.StatusOK).JSON(resp)
 }
