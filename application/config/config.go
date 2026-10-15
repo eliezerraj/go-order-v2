@@ -100,7 +100,6 @@ type KafkaConsumer struct {
 	Password   string   `env:"KAFKA_CONSUMER_PASSWORD"`
 	Name       string   `env:"KAFKA_CONSUMER_NAME"`
 	GroupID    string   `env:"KAFKA_CONSUMER_GROUP_ID"`
-	DryRun	   bool     `env:"KAFKA_EVENT_DRY_RUN" envDefault:"false"`
 }
 
 type OtelEnv struct {

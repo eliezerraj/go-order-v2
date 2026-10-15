@@ -97,7 +97,6 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 	defer resp.Body.Close()
 
 	// Check for non-200 status codes
-
 	switch resp.StatusCode {
 	case http.StatusOK:
 		// Continue processing
