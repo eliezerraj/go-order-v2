@@ -32,7 +32,7 @@ type InventoryModule struct {
 func NewInventoryModule(cfg *config.Config, 
 						client httpclient.IHTTPClient,
 						authClientService *auth.AuthClientService) InventoryModule {
-	logger.Info(context.Background(), "NewInventoryModule called with authClientService", zap.Any("authClientService", authClientService))
+	logger.Info(context.Background(), "NewInventoryModule called with authClientService SUCCESSFULLY")
 
 	return InventoryModule{
 		cfg: cfg,
