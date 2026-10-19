@@ -129,6 +129,7 @@ func TraceExtractionMiddleware() fiber.Handler {
 func TraceMiddleware() fiber.Handler {
     return func(c fiber.Ctx) error {
 
+		// Optionally skip tracing for certain paths like metrics and health checks.
 		switch c.Path() {
 			case "/metrics", "/health":
 				return c.Next()
