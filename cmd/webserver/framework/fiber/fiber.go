@@ -18,6 +18,7 @@ import (
 
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/auth"
+	"github.com/eliezerraj/go-core/v3/policy"
 )
 
 // Create a new Server configuration.
@@ -117,6 +118,11 @@ func (s *FiberServer) SetupRoutes(cfg *config.Config, application *application.A
 		logger.Warn(context.Background(), "Failed to get JWKS URL", zap.Error(err))
 	}
 
+	clientCedar, err := policy.NewCedarClient(cfg.Authorization.PolicyPath, cfg.Authorization.DryRun)
+	if err != nil {
+		logger.Warn(context.Background(), "Failed to create Cedar client", zap.Error(err))
+	}
+
 	// Create adapters for controllers						
 	adapters := newAdapters(s.cfg, application)
 	root.Get("/health", adapters.metadataAdp.HealthGet)
@@ -128,22 +134,27 @@ func (s *FiberServer) SetupRoutes(cfg *config.Config, application *application.A
 
 	appRoutes.Get("/order/time-series-order-items",
 					authService.FiberAuthorizationMiddleware(),
+					clientCedar.FiberPolicyEvaluationMiddleware("get:time-series-order-items"),
 					middleware.MetricsMiddleware(adapters.applicationAdp.TimeSeriesOrderItemsGet))
 
 	appRoutes.Get("/order/:order_number", 
 					authService.FiberAuthorizationMiddleware(),
+					clientCedar.FiberPolicyEvaluationMiddleware("get:order"),
 					middleware.MetricsMiddleware(adapters.applicationAdp.OrderGet))
 	
 	appRoutes.Post("/order", 
 					authService.FiberAuthorizationMiddleware(),
+					clientCedar.FiberPolicyEvaluationMiddleware("add:order"),
 					middleware.MetricsMiddleware(adapters.applicationAdp.OrderAdd))
 
 	appRoutes.Get("/order/checkout/:order_number", 
 					authService.FiberAuthorizationMiddleware(),
+					clientCedar.FiberPolicyEvaluationMiddleware("get:checkout"),
 					middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutGet))
 	
 	appRoutes.Post("/order/checkout", 
 					authService.FiberAuthorizationMiddleware(),
+					clientCedar.FiberPolicyEvaluationMiddleware("add:checkout"),
 					middleware.MetricsMiddleware(adapters.applicationAdp.CheckoutAdd))
 
 }
