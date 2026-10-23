@@ -43,7 +43,7 @@ func (a *ApplicationAdapter) OrderGet(ctxFiber fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.Context(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.orderGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "adapter.orderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Debug(
@@ -107,7 +107,7 @@ func (a *ApplicationAdapter) OrderAdd(ctxFiber fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.Context(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.orderAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "adapter.orderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Debug(
@@ -180,7 +180,7 @@ func (a *ApplicationAdapter) CheckoutGet(ctxFiber fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.Context(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.checkoutGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "adapter.checkoutGet", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Debug(
@@ -249,7 +249,7 @@ func (a *ApplicationAdapter) CheckoutAdd(ctxFiber fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.Context(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.checkoutAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "adapter.checkoutAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Debug(
@@ -323,7 +323,7 @@ func (a *ApplicationAdapter) TimeSeriesOrderItemsGet(ctxFiber fiber.Ctx) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctxFiber.Context(), a.cfg.HTTP.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "applicationAdapter.timeSeriesOrderItemsGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxWithTimeout, "adapter.timeSeriesOrderItemsGet", trace.SpanKindInternal)
 	defer span.End()
 
 	logger.Debug(

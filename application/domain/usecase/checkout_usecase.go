@@ -62,12 +62,12 @@ func (c *CheckoutUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.
 	return tx, nil
 }
 
-// AddOrder adds a new order to the repository.
+// CheckoutAdd adds a new checkout to the repository.
 func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Checkout) (res_checkout *entity.Checkout, err error) {
 	logger.Info(ctx, "checkout usecase CheckoutAdd called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.checkoutAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -219,7 +219,7 @@ func (c *CheckoutUsecase) CheckoutGet(ctx context.Context, checkout entity.Check
 	logger.Info(ctx, "checkout usecase CheckoutGet called")
 
 	// Tracing.
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.checkoutGet", trace.SpanKindInternal)
 	defer span.End()
 
 	// Get the order from the repository
@@ -237,7 +237,7 @@ func (c *CheckoutUsecase) CheckoutPut(ctx context.Context, checkout entity.Check
 	logger.Info(ctx, "checkout usecase CheckoutPut called", zap.Any("checkout", checkout))
 
 	// Tracing.
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutUsecase.CheckoutPut", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.checkoutPut", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction

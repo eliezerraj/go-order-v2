@@ -25,7 +25,7 @@ type IDataProviderUseCase interface {
 }
 
 func NewDataProviderUseCase(dataproviderRepository repository.IDataProvider, inventoryModule module.InventoryModule) IDataProviderUseCase {
-	logger.Info(context.Background(), "initializing TimeSeriesOrderItemsGet usecase SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing DataProviderUseCase SUCCESSFULLY")
 	
 	return &DataProviderUseCase{
 		dataproviderRepository: dataproviderRepository,
@@ -37,7 +37,7 @@ func (u *DataProviderUseCase) TimeSeriesOrderItemsGet(ctx context.Context, produ
 	logger.Info(ctx, "executing TimeSeriesOrderItemsGet usecase:", zap.Any("product", product), zap.Int("limit", limit), zap.Int("offset", offset))
 
 	// Tracing.
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "dataproviderUsecase.TimeSeriesOrderItemsGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.timeSeriesOrderItemsGet", trace.SpanKindInternal)
 	defer span.End()
 
 	res_inventory, err := u.inventoryModule.GetInventory(ctx, product)

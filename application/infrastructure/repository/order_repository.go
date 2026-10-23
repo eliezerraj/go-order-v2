@@ -58,10 +58,10 @@ func (p *OrderRepository) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.
 }
 
 func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res_order *entity.Order, err error) {
-	logger.Info(ctx, "order repository OrderGet called")
+	logger.Info(ctx, "repository.orderGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderGet", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
@@ -78,7 +78,7 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "order repository OrderGet failed", zap.Error(err))
+			logger.Debug(ctx, "repository.orderGet failed", zap.Error(err))
 		}
         histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
             attribute.String("operation", "OrderGet"),
@@ -121,10 +121,10 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res
 }
 
 func (p *OrderRepository) OrderItensGet(ctx context.Context, order entity.Order) ( res_order_itens *[]entity.OrderItem, err error) {
-	logger.Info(ctx, "order repository OrderItensGet called")
+	logger.Info(ctx, "repository.orderItensGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderItensGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderItensGet", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -141,7 +141,7 @@ func (p *OrderRepository) OrderItensGet(ctx context.Context, order entity.Order)
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "order repository OrderItensGet failed", zap.Error(err))
+			logger.Debug(ctx, "repository.orderItensGet failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderItensGet"),
@@ -187,10 +187,10 @@ func (p *OrderRepository) OrderItensGet(ctx context.Context, order entity.Order)
 }
 
 func (p *OrderRepository) OrderAdd(ctx context.Context, tx pgx.Tx, order entity.Order) (res_order *entity.Order, err error) {
-	logger.Info(ctx, "order repository OrderAdd called")
+	logger.Info(ctx, "repository.orderAdd called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -207,7 +207,7 @@ func (p *OrderRepository) OrderAdd(ctx context.Context, tx pgx.Tx, order entity.
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "order repository OrderAdd failed", zap.Error(err))
+			logger.Debug(ctx, "repository.orderAdd failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderAdd"),
@@ -237,10 +237,10 @@ func (p *OrderRepository) OrderAdd(ctx context.Context, tx pgx.Tx, order entity.
 }
 
 func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (res_order_item *entity.OrderItem, err error) {
-	logger.Info(ctx, "order repository OrderItemAdd called", zap.Any("order_item", orderItem))
+	logger.Info(ctx, "repository.orderItemAdd called", zap.Any("order_item", orderItem))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderItemAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderItemAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -257,7 +257,7 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "order repository OrderItemAdd failed", zap.Error(err))
+			logger.Debug(ctx, "repository.orderItemAdd failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderItemAdd"),
@@ -287,10 +287,10 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem
 }
 
 func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.Order) (rowsAffected int64, err error) {
-	logger.Info(ctx, "order repository OrderPut called", zap.Any("order", order))
+	logger.Info(ctx, "repository.orderPut called", zap.Any("order", order))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderPut", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderPut", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -307,7 +307,7 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "order repository OrderPut failed", zap.Error(err))
+			logger.Debug(ctx, "repository.orderPut failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderPut"),
@@ -335,10 +335,10 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 }
 
 func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem entity.OrderItem) (rowsAffected int64, err error) {
-	logger.Info(ctx, "order repository OrderItemPut called", zap.Any("orderItem", orderItem))
+	logger.Info(ctx, "repository.orderItemPut called", zap.Any("orderItem", orderItem))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderRepository.OrderItemPut", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderItemPut", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -355,7 +355,7 @@ func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "order repository OrderItemPut failed", zap.Error(err))
+			logger.Debug(ctx, "repository.orderItemPut failed", zap.Error(err))
 		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "OrderItemPut"),
@@ -375,7 +375,7 @@ func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem
 
 	rowsAffected = row.RowsAffected()
 	if rowsAffected == 0 {
-		logger.Debug(ctx, "order repository OrderItemPut: no rows affected, order item not found", zap.Int("order_item_id", orderItem.ID))
+		logger.Debug(ctx, "repository.orderItemPut: no rows affected, order item not found", zap.Int("order_item_id", orderItem.ID))
 		return 0, nil
 	}
 

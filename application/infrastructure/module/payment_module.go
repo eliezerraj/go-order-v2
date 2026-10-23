@@ -49,29 +49,29 @@ func NewPaymentModule(cfg *config.Config,
 }
 
 func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external.PaymentRequest) (*entity.PaymentCheckout, error) {
-	logger.Info(ctx, "payment module PaymentAdd called")
+	logger.Info(ctx, "module payment PaymentAdd called")
 
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Payment.Timeout)
 	defer cancel()
 
 	// Trace
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "paymentModule.PaymentAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.payment.paymentAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath)
 
-	logger.Debug(ctx, "payment module PaymentAdd request", zap.String("method", http.MethodPost), zap.String("endpoint", endpoint))
-	logger.Debug(ctx, "payment module PaymentAdd request body", zap.Any("payment_request", paymentRequest))
+	logger.Debug(ctx, "module payment PaymentAdd request", zap.String("method", http.MethodPost), zap.String("endpoint", endpoint))
+	logger.Debug(ctx, "module payment PaymentAdd request body", zap.Any("payment_request", paymentRequest))
 	
 	body, err := json.Marshal(paymentRequest)
 	if err != nil {
-		logger.Error(ctx, "Failed to marshal payment request", zap.Error(err))
+		logger.Error(ctx, "module payment PaymentAdd failed to marshal payment request", zap.Error(err))
 		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
-		logger.Error(ctx, "Failed to create request", zap.Error(err))
+		logger.Error(ctx, "module payment PaymentAdd failed to create request", zap.Error(err))
 		return nil, err
 	}
 
@@ -96,7 +96,7 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 
 	resp, err := im.client.Do(req.WithContext(ctx))
 	if err != nil {
-		logger.Error(ctx, "Failed to perform request", zap.Error(err))
+		logger.Error(ctx, "module payment PaymentAdd failed to perform request", zap.Error(err))
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -108,17 +108,17 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 	case http.StatusCreated:
 		// Continue processing
 	case http.StatusNotFound:
-		logger.Debug(ctx, "Payment service returned with status", zap.Int("status", resp.StatusCode))
+		logger.Debug(ctx, "module payment PaymentAdd: Payment service returned with status", zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("payment service returned with status: %d: %w", resp.StatusCode, apperrors.ErrNotFound)
 	default:
-		logger.Error(ctx, "Payment service returned unexpected status", zap.Int("status", resp.StatusCode))
+		logger.Error(ctx, "module payment PaymentAdd: Payment service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("payment service returned status: %d", resp.StatusCode)
 	}
 
 	// Decode the response body into a Payment struct
     var res external.PaymentResponse[entity.PaymentCheckout]
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		logger.Error(ctx, "Failed to decode response", zap.Error(err))
+		logger.Error(ctx, "module payment PaymentAdd failed to decode response", zap.Error(err))
 		return nil, err
 	}
 
@@ -132,14 +132,14 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 	defer cancel()
 
 	// Trace
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "paymentModule.PaymentGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.payment.paymentGet", trace.SpanKindInternal)
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s/%v", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath + "/order", paymentRequest.Order.ID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		logger.Error(ctx, "Failed to create request", zap.Error(err))
+		logger.Error(ctx, "module payment PaymentGet failed to create request", zap.Error(err))
 		return nil, err
 	}
 
@@ -164,7 +164,7 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 
 	resp, err := im.client.Do(req.WithContext(ctx))
 	if err != nil {
-		logger.Error(ctx, "Failed to perform request", zap.Error(err))
+		logger.Error(ctx, "module payment PaymentGet failed to perform request", zap.Error(err))
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -176,17 +176,17 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 	case http.StatusCreated:
 		// Continue processing
 	case http.StatusNotFound:
-		logger.Debug(ctx, "Payment service returned 404 Not Found")
+		logger.Debug(ctx, "module payment PaymentGet: Payment service returned 404 Not Found")
 		return nil, fmt.Errorf("payment service returned with status: %d: order ID: %v: %w", resp.StatusCode, paymentRequest.Order.ID, apperrors.ErrNotFound)
 	default:
-		logger.Error(ctx, "Payment service returned unexpected status", zap.Int("status", resp.StatusCode))
+		logger.Error(ctx, "module payment PaymentGet: Payment service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("payment service returned status: %d", resp.StatusCode)
 	}
 
 	var res external.PaymentResponse[[]*entity.Payment]
 	// Decode the response body into a Payment struct
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		logger.Error(ctx, "Failed to decode response", zap.Error(err))
+		logger.Error(ctx, "module payment PaymentGet failed to decode response", zap.Error(err))
 		return nil, err
 	}
 

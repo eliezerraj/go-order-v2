@@ -39,7 +39,7 @@ type IOrderUseCase interface {
 }
 
 func NewOrderUseCase(orderRepository repository.IOrderRepository, inventoryModule module.InventoryModule, paymentModule module.PaymentModule) IOrderUseCase {
-	logger.Info(context.Background(), "initializing order usecase SUCCESSFULLY")
+	logger.Info(context.Background(), "initializing usecase order usecase SUCCESSFULLY")
 
 	return &OrderUsecase{
 		orderRepository: orderRepository,
@@ -61,12 +61,12 @@ func (o *OrderUsecase) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx,
 	return tx, nil
 }
 
-// AddOrder adds a new order to the repository.
+// OrderAdd adds a new order to the repository.
 func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_order *entity.Order, err error) {
 	logger.Info(ctx, "order usecase OrderAdd called")
 
 	// Tracing
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderUsecase.OrderAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.orderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -170,10 +170,10 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 
 // GetOrder retrieves an order from the repository based on the provided order details.
 func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entity.Order, error) {
-	logger.Info(ctx, "order usecase OrderGet called")
+	logger.Info(ctx, "usecase order usecase OrderGet called")
 
 	// Tracing
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "orderUsecase.OrderGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.orderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	// Get the order from the repository
@@ -217,7 +217,7 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	// Set the payment details in the order response
 	res_order.Payments = res_payments
 
-	logger.Info(ctx, "order usecase OrderGet completed SUCCESSFULLY")
+	logger.Info(ctx, "usecase order usecase OrderGet completed SUCCESSFULLY")
 
 	return res_order, nil
 }
