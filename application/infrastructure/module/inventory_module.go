@@ -32,7 +32,7 @@ type InventoryModule struct {
 func NewInventoryModule(cfg *config.Config, 
 						client httpclient.IHTTPClient,
 						authClientService *auth.AuthClientService) InventoryModule {
-	logger.Info(context.Background(), "NewInventoryModule called with authClientService SUCCESSFULLY")
+	logger.Info(context.Background(), "module inventory NewInventoryModule called with authClientService SUCCESSFULLY")
 
 	return InventoryModule{
 		cfg: cfg,
@@ -42,13 +42,13 @@ func NewInventoryModule(cfg *config.Config,
 }
 
 func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Product) (*entity.Product, error) {
-	logger.Info(ctx, "inventory module GetInventory called")
+	logger.Info(ctx, "module inventory GetInventory called")
 
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Inventory.Timeout)
 	defer cancel()
 
 	// Trace
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "inventoryModule.GetInventory", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.inventory.getInventory", trace.SpanKindInternal)
 	defer span.End()
 
 	var endpoint string
@@ -58,15 +58,15 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 		endpoint = fmt.Sprintf("%s%s/%d", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.ID)
 	} else {
 		err := fmt.Errorf("product must have either SKU or ID")
-		logger.Error(ctx, "inventory module GetInventory failed", zap.Error(err))
+		logger.Error(ctx, "module inventory GetInventory failed", zap.Error(err))
 		return nil, err
 	}
 
-	logger.Info(ctx, "inventory module GetInventory request", zap.String("method", http.MethodGet), zap.String("endpoint", endpoint))
+	logger.Info(ctx, "module inventory GetInventory request", zap.String("method", http.MethodGet), zap.String("endpoint", endpoint))
 	
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		logger.Error(ctx, "Failed to create request", zap.Error(err))
+		logger.Error(ctx, "module inventory GetInventory failed to create request", zap.Error(err))
 		return nil, err
 	}
 	
@@ -91,7 +91,7 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 
 	resp, err := im.client.Do(req.WithContext(ctx))
 	if err != nil {
-		logger.Error(ctx, "Failed to perform request", zap.Error(err))
+		logger.Error(ctx, "module inventory GetInventory failed to perform request", zap.Error(err))
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -111,7 +111,7 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 	// Decode the response body into a Product struct
     var res external.InventoryResponse
     if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-        logger.Error(ctx, "Failed to decode response", zap.Error(err))
+        logger.Error(ctx, "module inventory GetInventory failed to decode response", zap.Error(err))
         return nil, err
     }
 
@@ -119,17 +119,17 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 }
 
 func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Product) error {
-	logger.Info(ctx, "inventory module InventoryPatch called")
+	logger.Info(ctx, "module inventory InventoryPatch called")
 
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Inventory.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "inventoryModule.InventoryPatch", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.inventory.inventoryPatch", trace.SpanKindInternal)
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s/inventory/%d", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.ID)
 
-	logger.Info(ctx, "inventory module InventoryPatch request", zap.String("method", http.MethodPatch), zap.String("endpoint", endpoint))
+	logger.Info(ctx, "module inventory InventoryPatch request", zap.String("method", http.MethodPatch), zap.String("endpoint", endpoint))
 
 	inventory := &entity.Inventory{
 		Available: product.Inventory.Available,
@@ -141,15 +141,15 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		logger.Error(ctx, "Failed to marshal payload", zap.Error(err))
+		logger.Error(ctx, "module inventory InventoryPatch failed to marshal payload", zap.Error(err))
 		return err
 	}
 
-	logger.Debug(ctx, "inventory module InventoryPatch payload", zap.Any("payload", payload))
+	logger.Debug(ctx, "module inventory InventoryPatch payload", zap.Any("payload", payload))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, endpoint, bytes.NewReader(payloadBytes))
 	if err != nil {
-		logger.Error(ctx, "Failed to create request", zap.Error(err))
+		logger.Error(ctx, "module inventory InventoryPatch failed to create request", zap.Error(err))
 		return err
 	}
 
@@ -174,13 +174,13 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 
 	resp, err := im.client.Do(req.WithContext(ctx))
 	if err != nil {
-		logger.Error(ctx, "Failed to perform request", zap.Error(err))
+		logger.Error(ctx, "module inventory InventoryPatch failed to perform request", zap.Error(err))
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logger.Error(ctx, "Inventory service returned unexpected status", zap.Int("status", resp.StatusCode))
+		logger.Error(ctx, "module inventory InventoryPatch: Inventory service returned unexpected status", zap.Int("status", resp.StatusCode))
 		return fmt.Errorf("inventory service returned status: %d", resp.StatusCode)
 	}
 

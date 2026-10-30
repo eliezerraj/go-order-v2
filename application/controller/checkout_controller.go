@@ -39,7 +39,7 @@ func (c *CheckoutController) CheckoutAdd(ctx context.Context, req external.Check
 	logger.Info(ctx, "checkout controller CheckoutAdd called")
 
 	// Trace
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutAdd", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "controller.checkoutAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Validate the request using the schema
@@ -92,7 +92,7 @@ func (c *CheckoutController) CheckoutAdd(ctx context.Context, req external.Check
 func (c *CheckoutController) CheckoutGet(ctx context.Context, req external.CheckoutRequest) (*entity.Checkout, error) {
 	logger.Info(ctx, "checkout controller CheckoutGet called", zap.Any("order", req.Order))
 
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "controller.checkoutGet", trace.SpanKindInternal)
 	defer span.End()
 
 	checkout := entity.Checkout{
@@ -114,7 +114,7 @@ func (c *CheckoutController) CheckoutPut(ctx context.Context, req external.Check
 	logger.Info(ctx, "checkout controller CheckoutPut called", zap.Any("order", req.Order))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutController.CheckoutPut", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "controller.checkoutPut", trace.SpanKindInternal)
 	defer span.End()
 
 	// Validate the request using the schema

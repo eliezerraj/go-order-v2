@@ -8,8 +8,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/codes"
 	"github.com/eliezerraj/go-core/v3/logger"
 	"github.com/eliezerraj/go-core/v3/database/connector"
+	"go.uber.org/zap"
 
 	"github.com/go-order-v2/application/tracing"
 	"github.com/go-order-v2/application/domain/entity"
@@ -31,11 +33,11 @@ func NewDataProviderRepository(dbConnector connector.IDatabaseConnector) IDataPr
     }
 }
 
-func (r *DataProviderRepository) TimeSeriesOrderItemsGet(ctx context.Context, product entity.Product, limit int, offset int) (*entity.TimeSeriesOrderItem, error) {
-    logger.Info(ctx, "data provider repository TimeSeriesOrderItemsGet called")
+func (r *DataProviderRepository) TimeSeriesOrderItemsGet(ctx context.Context, product entity.Product, limit int, offset int) (res_timeSeriesOrderItem *entity.TimeSeriesOrderItem, err error) {
+    logger.Info(ctx, "repository.timeSeriesOrderItemsGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "dataProviderRepository.TimeSeriesOrderItemsGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.timeSeriesOrderItemsGet", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
@@ -47,6 +49,11 @@ func (r *DataProviderRepository) TimeSeriesOrderItemsGet(ctx context.Context, pr
         attribute.String("operation", "TimeSeriesOrderItemsGet"),
     ))
 	defer func() {
+        if err != nil {
+			span.RecordError(err) 
+			span.SetStatus(codes.Error, err.Error())
+			logger.Debug(ctx, "repository.timeSeriesOrderItemsGet failed", zap.Error(err))
+		}
 		histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
 			attribute.String("operation", "TimeSeriesOrderItemsGet"),
 		))

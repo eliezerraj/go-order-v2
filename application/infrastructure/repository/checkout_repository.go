@@ -57,7 +57,7 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 	logger.Info(ctx, "checkout repository CheckoutGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutRepository.CheckoutGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.checkoutGet", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
@@ -74,7 +74,7 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "checkout repository CheckoutGet failed", zap.Error(err))
+			logger.Debug(ctx, "repository.checkoutGet failed", zap.Error(err))
 		}
         histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
             attribute.String("operation", "CheckoutGet"),
@@ -117,10 +117,10 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 }
 
 func (p *CheckoutRepository) CheckoutPut(ctx context.Context, tx pgx.Tx, checkout entity.Checkout) (rowsAffected int64, err error) {
-	logger.Info(ctx, "checkout repository CheckoutPut called" , zap.Any("checkout", checkout))
+	logger.Info(ctx, "repository.checkoutPut called" , zap.Any("checkout", checkout))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "checkoutRepository.CheckoutPut", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.checkoutPut", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
@@ -137,7 +137,7 @@ func (p *CheckoutRepository) CheckoutPut(ctx context.Context, tx pgx.Tx, checkou
 		if err != nil {
 			span.RecordError(err) 
 			span.SetStatus(codes.Error, err.Error())
-			logger.Debug(ctx, "checkout repository CheckoutPut failed", zap.Error(err))
+			logger.Debug(ctx, "repository.checkoutPut failed", zap.Error(err))
 		}
         histogram.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(
             attribute.String("operation", "CheckoutPut"),

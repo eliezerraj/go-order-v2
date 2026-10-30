@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: &app-name cm-go-order-v2
+  namespace: test-a
+  labels:
+    app: *app-name
+data:
+  APP_NAME: "go-order-v2.eks-01-02"
+  VERSION: "1.0"
+  ACCOUNT: "aws:908671954593"
+  ENV: "dev"
+  TYPE: "webserver"
+
+  HTTP_TIMEOUT: "120s"
+  HTTP_KEEP_ALIVE: "120s"
+  HTTP_READTIMEOUT: "120s"
+  HTTP_WRITETIMEOUT: "120s"
+  HTTP_IDLECONNTIMEOUT: "120s"
+  HTTP_MAXIDLECONNS: "2"
+  HTTP_MAXIDLECONNSPERHOST: "2"
+  HTTP_MAXCONNSPERHOST: "2"
+  HTTP_PORT: "7100"
+  READ_BUFFER_SIZE: "12288"
+  DISABLE_STARTUP_MESSAGE: "true"
+
+  AUTHENTICATION_TIMEOUT: "10s"
+  AUTHENTICATION_CLIENT_ID: "go-order-v2"
+  AUTHENTICATION_CLIENT_SECRET: "go-order-v2-secret-001"
+  AUTHENTICATION_DRY_RUN: "false"
+  AUTHENTICATION_REFRESH_INTERVAL: "3600"
+  AUTHENTICATION_AUTH_URL: "https://go-authorizer-v2.architecture.xpto.io/v1/auth"
+  AUTHENTICATION_REFRESH_URL: "https://go-authorizer-v2.architecture.xpto.io/v1/refresh"
+
+  DB_HOST: "rds-proxy-db-arch.proxy-couoacqalfwt.us-east-2.rds.amazonaws.com"
+  DB_PORT: "5432"
+  DB_USERNAME: "postgres"
+  DB_PASSWORD: "postgres"
+  DB_NAME: "postgres"
+  DB_SCHEMA: "public"
+  DATABASE_QUERY_TRACER: "false"
+  DB_MAX_CONNS: "5" 
+  DB_MIN_CONNS: "5" 
+  DB_CONNECTION_TIMEOUT_DURATION: "4s"
+  DB_LIFE_TIME_CONNS: "28s"
+  DB_IDLE_TIME_CONNS: "1s"
+
+  LOG_LEVEL: "info" #info, error, warning
+  LOG_MODE: "json"
+
+  AUTHORIZATION_DRY_RUN: "false"
+  AUTHORIZATION_POLICY_PATH: "/app/application/infrastructure/auth/policy/policy.cedar"
+  AUTHORIZATION_TIMEOUT: "15s"
+  AUTHORIZATION_JWKS_URL: "https://go-authorizer-v2.architecture.xpto.io/v1/.well-known/jwks.json"
+  AUTHORIZATION_HEADER_KEY: "Authorization"
+  AUTHORIZATION_REQUIRED_HEADER: "false"
+
+  OTEL_EXPORTER_OTLP_ENDPOINT: "arch-eks-01-02-otel-collector.default.svc.cluster.local:4317"
+  OTEL_METRICS_PORT: "8001"
+
+  INVENTORY_ENDPOINT: "https://go-inventory-v2.architecture.xpto.io"
+  INVENTORY_URL_PATH: "/v1/product"
+  INVENTORY_ENDPOINT_TIMEOUT: "10s"
+
+  PAYMENT_ENDPOINT: "https://go-payment-v2.architecture.xpto.io"
+  PAYMENT_URL_PATH: "/v1/payment"
+  PAYMENT_ENDPOINT_TIMEOUT: "10s"
+
+  KAFKA_CONSUMER_NAME: "order-consumer.docker-compose"
+  KAFKA_CONSUMER_GROUP_ID: "grp.order-consumer.docker-compose"
+  KAFKA_CONSUMER_BROKER: "b-1.mskarch01.x25pj7.c3.kafka.us-east-2.amazonaws.com:9096,b-2.mskarch01.x25pj7.c3.kafka.us-east-2.amazonaws.com:9096,b-3.mskarch01.x25pj7.c3.kafka.us-east-2.amazonaws.com:9096"
+  KAFKA_CONSUMER_TOPIC: "kfk.order.checkout.payment"
+  KAFKA_CONSUMER_PROTOCOL: "SASL_SSL"
+  KAFKA_CONSUMER_MECHANISM: "SCRAM-SHA-512"
+  #KAFKA_CONSUMER_PROTOCOL: "PLAINTEXT"
+  #KAFKA_CONSUMER_MECHANISM: "PLAIN"
+  KAFKA_CONSUMER_USERNAME: "admin"
+  KAFKA_CONSUMER_PASSWORD: "admin"

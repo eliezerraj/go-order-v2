@@ -29,7 +29,7 @@ func (p *PaymentEvent) ProcessPaymentMessage(ctx context.Context, payment entity
 	logger.Info(ctx, "Processing payment message", zap.Any("payment", payment))
 	
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "eventKafka.ProcessPaymentMessage", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "event.kafka.processPaymentMessage", trace.SpanKindInternal)
 	defer span.End()
 
 	listPaymentDetailRequest := []*external.PaymentDetailRequest{}

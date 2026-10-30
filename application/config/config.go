@@ -41,10 +41,6 @@ type Database struct {
 	HealthCheckTimeout    time.Duration `env:"DB_HEALTH_CHECK_TIMEOUT" envDefault:"15s"`
 }
 
-type Scopes struct {
-	AllowedScopes string `env:"ALLOWEDSCOPES"`
-}
-
 type Authorization struct {
 	PolicyPath          string `env:"AUTHORIZATION_POLICY_PATH"`
 	HeaderKey 			string `env:"AUTHORIZATION_HEADER_KEY,required"`
@@ -81,7 +77,6 @@ type Config struct {
 	App         App
 	HTTP        HTTP
 	Database    Database
-	Scopes		Scopes
 	Log         Log
 	OtelEnv		OtelEnv
 	Authorization Authorization

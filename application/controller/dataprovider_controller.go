@@ -30,7 +30,7 @@ func (c *DataProviderController) TimeSeriesOrderItemsGet(ctx context.Context, re
 	logger.Info(ctx, "executing TimeSeriesOrderItemsGet controller:", zap.Any("req", req))
 	
 	// Tracing context for the TimeSeriesOrderItemsGet operation
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "dataProviderController.TimeSeriesOrderItemsGet", trace.SpanKindInternal)
+	ctx, span := tracing.CustomStartSpanCtx(ctx, "controller.timeSeriesOrderItemsGet", trace.SpanKindInternal)
 	defer span.End()
 	
 	product := entity.Product{
