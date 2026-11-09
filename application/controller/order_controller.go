@@ -11,7 +11,7 @@ import (
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/shared/helpers"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 
 	"go.opentelemetry.io/otel/trace"
 )
@@ -40,7 +40,7 @@ func (o *OrderController) OrderAdd(ctx context.Context, req external.OrderReques
 	logger.Info(ctx, "order controller OrderAdd called")
 
 	// Tracing context for the OrderAdd operation
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "controller.orderAdd", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "controller.orderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Schema validation
@@ -99,7 +99,7 @@ func (o *OrderController) OrderGet(ctx context.Context, req external.OrderReques
 	logger.Info(ctx, "order controller OrderGet called", zap.String("order_number", req.OrderNumber))
 	
 	// Tracing context for the OrderGet operation
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "controller.orderGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "controller.orderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	order := entity.Order{

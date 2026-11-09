@@ -16,7 +16,7 @@ import (
 	
 	"github.com/go-order-v2/application/domain/entity"
     "github.com/go-order-v2/application/shared/otelkafka"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
@@ -149,7 +149,7 @@ func extractTraceContext(ctx context.Context, msg *kafka.Message) (context.Conte
     // 3. Extract x-request-id if present and attach to context
     requestID := carrier.Get("x-request-id")
     if requestID != "" {
-        parentCtx = context.WithValue(parentCtx, tracing.RequestIDHeaderName, requestID)
+        parentCtx = context.WithValue(parentCtx, observability.RequestIDHeaderName, requestID)
     }
 
     // 4. Start a CONSUMER span as child of the incoming trace

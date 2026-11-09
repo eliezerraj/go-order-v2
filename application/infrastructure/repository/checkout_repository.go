@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/go-order-v2/application/domain/entity"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 	"github.com/go-order-v2/application/domain/apperrors"
 
 	"github.com/eliezerraj/go-core/v3/logger"
@@ -57,7 +57,7 @@ func (p *CheckoutRepository) CheckoutGet(ctx context.Context, checkout entity.Ch
 	logger.Info(ctx, "checkout repository CheckoutGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.checkoutGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.checkoutGet", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
@@ -120,7 +120,7 @@ func (p *CheckoutRepository) CheckoutPut(ctx context.Context, tx pgx.Tx, checkou
 	logger.Info(ctx, "repository.checkoutPut called" , zap.Any("checkout", checkout))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.checkoutPut", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.checkoutPut", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")

@@ -17,7 +17,7 @@ import (
 	"github.com/go-order-v2/application/config"
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/domain/external"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 	"github.com/go-order-v2/application/domain/apperrors"
 )
 
@@ -55,7 +55,7 @@ func (im *PaymentModule) PaymentAdd(ctx context.Context, paymentRequest external
 	defer cancel()
 
 	// Trace
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.payment.paymentAdd", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctxHttpTimeout, "module.payment.paymentAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath)
@@ -132,7 +132,7 @@ func (im *PaymentModule) PaymentGet(ctx context.Context, paymentRequest external
 	defer cancel()
 
 	// Trace
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.payment.paymentGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctxHttpTimeout, "module.payment.paymentGet", trace.SpanKindInternal)
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s/%v", im.cfg.Payment.Endpoint, im.cfg.Payment.UrlPath + "/order", paymentRequest.Order.ID)

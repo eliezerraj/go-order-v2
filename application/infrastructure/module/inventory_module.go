@@ -17,7 +17,7 @@ import (
 	"github.com/go-order-v2/application/config"
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/domain/external"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 	"github.com/go-order-v2/application/domain/apperrors"
 )
 
@@ -48,7 +48,7 @@ func (im *InventoryModule) GetInventory(ctx context.Context, product entity.Prod
 	defer cancel()
 
 	// Trace
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.inventory.getInventory", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctxHttpTimeout, "module.inventory.getInventory", trace.SpanKindInternal)
 	defer span.End()
 
 	var endpoint string
@@ -124,7 +124,7 @@ func (im *InventoryModule) InventoryPatch(ctx context.Context, product entity.Pr
 	ctxHttpTimeout, cancel := context.WithTimeout(ctx, im.cfg.Inventory.Timeout)
 	defer cancel()
 
-	ctx, span := tracing.CustomStartSpanCtx(ctxHttpTimeout, "module.inventory.inventoryPatch", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctxHttpTimeout, "module.inventory.inventoryPatch", trace.SpanKindInternal)
 	defer span.End()
 
 	endpoint := fmt.Sprintf("%s%s/inventory/%d", im.cfg.Inventory.Endpoint, im.cfg.Inventory.UrlPath, product.ID)

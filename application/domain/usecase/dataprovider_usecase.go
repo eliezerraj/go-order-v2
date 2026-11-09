@@ -8,7 +8,7 @@ import (
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 
@@ -37,7 +37,7 @@ func (u *DataProviderUseCase) TimeSeriesOrderItemsGet(ctx context.Context, produ
 	logger.Info(ctx, "executing TimeSeriesOrderItemsGet usecase:", zap.Any("product", product), zap.Int("limit", limit), zap.Int("offset", offset))
 
 	// Tracing.
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.timeSeriesOrderItemsGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "usecase.timeSeriesOrderItemsGet", trace.SpanKindInternal)
 	defer span.End()
 
 	res_inventory, err := u.inventoryModule.GetInventory(ctx, product)

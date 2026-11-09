@@ -11,7 +11,7 @@ import (
 	"github.com/go-order-v2/application/infrastructure/application"
 
 	"go.opentelemetry.io/otel/trace"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 )
 
 type PaymentEvent struct {
@@ -29,7 +29,7 @@ func (p *PaymentEvent) ProcessPaymentMessage(ctx context.Context, payment entity
 	logger.Info(ctx, "Processing payment message", zap.Any("payment", payment))
 	
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "event.kafka.processPaymentMessage", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "event.kafka.processPaymentMessage", trace.SpanKindInternal)
 	defer span.End()
 
 	listPaymentDetailRequest := []*external.PaymentDetailRequest{}

@@ -69,6 +69,14 @@ func (s *Schema) CheckoutAddSchema() Schema {
                  return errors.New("schema validation failed ! field payment is mandatory")
             }
 
+            if req.Payment.PaymentDetail == nil {
+                return errors.New("schema validation failed ! field payment_detail is mandatory")
+            }
+
+            if len(req.Payment.PaymentDetail) == 0 {
+                return errors.New("schema validation failed ! field payment_detail must contain at least one item")
+            }
+            
             for i, item := range req.Payment.PaymentDetail {
                 if item.Amount <= 0 {
                     return errors.New("schema validation failed ! field amount must be greater than 0 for payment detail at index " + strconv.Itoa(i))

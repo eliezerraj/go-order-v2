@@ -13,7 +13,7 @@ import (
 	"github.com/eliezerraj/go-core/v3/database/connector"
 	"go.uber.org/zap"
 
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 	"github.com/go-order-v2/application/domain/entity"
 )
 
@@ -37,7 +37,7 @@ func (r *DataProviderRepository) TimeSeriesOrderItemsGet(ctx context.Context, pr
     logger.Info(ctx, "repository.timeSeriesOrderItemsGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.timeSeriesOrderItemsGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.timeSeriesOrderItemsGet", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")

@@ -110,9 +110,11 @@ func (s *FiberServer) SetupRoutes(cfg *config.Config, application *application.A
 	authService := auth.NewAuthService(	cfg.Authorization.JwksURL, 
 										cfg.Authorization.DryRun, 
 										cfg.Authorization.HeaderKey, 
-										cfg.Authorization.Timeout)
+										cfg.Authorization.Timeout,
+										cfg.Authorization.Audience,
+										cfg.Authorization.ResourceMetadata)
 	
-										// Retrieve the JWKS URL from the auth service
+	// Retrieve the JWKS URL from the auth service
 	err := authService.GetJwksUrl(context.Background())
 	if err != nil {
 		logger.Warn(context.Background(), "Failed to get JWKS URL", zap.Error(err))
@@ -126,6 +128,7 @@ func (s *FiberServer) SetupRoutes(cfg *config.Config, application *application.A
 	// Create adapters for controllers						
 	adapters := newAdapters(s.cfg, application)
 	root.Get("/health", adapters.metadataAdp.HealthGet)
+	root.Get("/.well-known/oauth-protected-resource", adapters.metadataAdp.ResourceMetadata)
 
 	appRoutes := root.Group("/v1")
 	appRoutes.Get("/info", adapters.metadataAdp.InfoGet)

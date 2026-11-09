@@ -7,7 +7,7 @@ import (
 	"github.com/go-order-v2/application/domain/entity"
 	"github.com/go-order-v2/application/domain/usecase"
 	"github.com/go-order-v2/application/domain/external"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 
 	"github.com/eliezerraj/go-core/v3/logger"
 
@@ -30,7 +30,7 @@ func (c *DataProviderController) TimeSeriesOrderItemsGet(ctx context.Context, re
 	logger.Info(ctx, "executing TimeSeriesOrderItemsGet controller:", zap.Any("req", req))
 	
 	// Tracing context for the TimeSeriesOrderItemsGet operation
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "controller.timeSeriesOrderItemsGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "controller.timeSeriesOrderItemsGet", trace.SpanKindInternal)
 	defer span.End()
 	
 	product := entity.Product{
