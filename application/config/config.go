@@ -42,18 +42,26 @@ type Database struct {
 }
 
 type Authorization struct {
-	PolicyPath          string `env:"AUTHORIZATION_POLICY_PATH"`
+	PolicyPath			string `env:"AUTHORIZATION_POLICY_PATH"`
 	HeaderKey 			string `env:"AUTHORIZATION_HEADER_KEY,required"`
 	DryRun  			bool   `env:"AUTHORIZATION_DRY_RUN,required"`
+	AuthorizationServer string `env:"AUTHORIZATION_SERVER"`
 	JwksURL 			string `env:"AUTHORIZATION_JWKS_URL"`
 	RequiredAuthHeader  bool   `env:"AUTHORIZATION_REQUIRED_HEADER"`
+	Audience 			string `env:"AUTHORIZATION_AUDIENCE"`
+	ResourceMetadata 	string `env:"AUTHORIZATION_OAUTH_PROTECTED_RESOURCE_URL"`
 	Timeout             time.Duration `env:"AUTHORIZATION_TIMEOUT" envDefault:"15s"`
 }
 
 type Authentication struct {
 	Timeout             time.Duration `env:"AUTHENTICATION_TIMEOUT" envDefault:"10s"`
-	ClientID            string        `env:"AUTHENTICATION_CLIENT_ID" envDefault:"go-order-v2"`
-	ClientSecret        string        `env:"AUTHENTICATION_CLIENT_SECRET" envDefault:"go-order-v2-secret-001"`
+	
+	ClientID_Payment     string  `env:"AUTHENTICATION_CLIENT_ID_PAYMENT"`
+	ClientSecret_Payment string  `env:"AUTHENTICATION_CLIENT_SECRET_PAYMENT"`
+
+	ClientID_Inventory      string     `env:"AUTHENTICATION_CLIENT_ID_INV"`
+	ClientSecret_Inventory  string     `env:"AUTHENTICATION_CLIENT_SECRET_INV"`
+
 	DryRun              bool          `env:"AUTHENTICATION_DRY_RUN" envDefault:"true"`
 	RefreshInterval     int           `env:"AUTHENTICATION_REFRESH_INTERVAL" envDefault:"60"`
 	AuthURL             string        `env:"AUTHENTICATION_AUTH_URL" envDefault:"http://localhost:7100/v1/auth"`

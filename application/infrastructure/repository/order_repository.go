@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/go-order-v2/application/domain/entity"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 	"github.com/go-order-v2/application/domain/apperrors"
 
 	"github.com/eliezerraj/go-core/v3/logger"
@@ -61,7 +61,7 @@ func (p *OrderRepository) OrderGet(ctx context.Context, order entity.Order) (res
 	logger.Info(ctx, "repository.orderGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.orderGet", trace.SpanKindInternal)
 	defer span.End()
 
     meter := otel.Meter("go-order-v2.repository")
@@ -124,7 +124,7 @@ func (p *OrderRepository) OrderItensGet(ctx context.Context, order entity.Order)
 	logger.Info(ctx, "repository.orderItensGet called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderItensGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.orderItensGet", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -190,7 +190,7 @@ func (p *OrderRepository) OrderAdd(ctx context.Context, tx pgx.Tx, order entity.
 	logger.Info(ctx, "repository.orderAdd called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderAdd", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.orderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -240,7 +240,7 @@ func (p *OrderRepository) OrderItemAdd(ctx context.Context, tx pgx.Tx, orderItem
 	logger.Info(ctx, "repository.orderItemAdd called", zap.Any("order_item", orderItem))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderItemAdd", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.orderItemAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -290,7 +290,7 @@ func (p *OrderRepository) OrderPut(ctx context.Context, tx pgx.Tx, order entity.
 	logger.Info(ctx, "repository.orderPut called", zap.Any("order", order))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderPut", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.orderPut", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")
@@ -338,7 +338,7 @@ func (p *OrderRepository) OrderItemPut(ctx context.Context, tx pgx.Tx, orderItem
 	logger.Info(ctx, "repository.orderItemPut called", zap.Any("orderItem", orderItem))
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "repository.orderItemPut", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "repository.orderItemPut", trace.SpanKindInternal)
 	defer span.End()
 
 	meter := otel.Meter("go-order-v2.repository")

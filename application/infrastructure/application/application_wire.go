@@ -105,21 +105,30 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	payHttpClient := httpclient.NewHttpClient(httpConfig)
 
 	// Create the authentication module.
-	authClientServiceOption := func(a *auth.AuthClientService) {
-		a.AuthURL = cfg.Authentication.AuthURL
-		a.RefreshURL = cfg.Authentication.RefreshURL
-		a.ClientID = cfg.Authentication.ClientID
-		a.ClientSecret = cfg.Authentication.ClientSecret
-		a.DryRun = cfg.Authentication.DryRun
+	authClientServiceOptionPay := func(a *auth.AuthClientService) {
+		a.AuthURL 		= cfg.Authentication.AuthURL
+		a.RefreshURL 	= cfg.Authentication.RefreshURL
+		a.ClientID 		= cfg.Authentication.ClientID_Payment
+		a.ClientSecret 	= cfg.Authentication.ClientSecret_Payment
+		a.DryRun 		= cfg.Authentication.DryRun
 		a.RefreshInterval = cfg.Authentication.RefreshInterval
 	}
-	
-	authClientService := auth.NewAuthClientService(authClientServiceOption)
-	authClientService.StartAuthenticate(context.Background())
+	authClientServicePay := auth.NewAuthClientService(authClientServiceOptionPay)
+	authClientServicePay.StartAuthenticate(context.Background())
+	paymentModule := module.NewPaymentModule(cfg, payHttpClient, authClientServicePay)
 
 	// Create the inventory module.
-	inventoryModule := module.NewInventoryModule(cfg, invHttpClient, authClientService)
-	paymentModule := module.NewPaymentModule(cfg, payHttpClient, authClientService)
+	authClientServiceOptionInv := func(a *auth.AuthClientService) {
+		a.AuthURL 		= cfg.Authentication.AuthURL
+		a.RefreshURL 	= cfg.Authentication.RefreshURL
+		a.ClientID 		= cfg.Authentication.ClientID_Inventory
+		a.ClientSecret 	= cfg.Authentication.ClientSecret_Inventory
+		a.DryRun 		= cfg.Authentication.DryRun
+		a.RefreshInterval = cfg.Authentication.RefreshInterval
+	}
+	authClientServiceInv := auth.NewAuthClientService(authClientServiceOptionInv)
+	authClientServiceInv.StartAuthenticate(context.Background())
+	inventoryModule := module.NewInventoryModule(cfg, invHttpClient, authClientServiceInv)
 
 	// UseCase initialization
 	orderUsecase := usecase.NewOrderUseCase(orderRepository, inventoryModule, paymentModule)

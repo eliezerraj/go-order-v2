@@ -13,7 +13,7 @@ import (
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 
 	"github.com/jackc/pgx/v5"
 
@@ -67,7 +67,7 @@ func (c *CheckoutUsecase) CheckoutAdd(ctx context.Context, checkout entity.Check
 	logger.Info(ctx, "checkout usecase CheckoutAdd called")
 
 	// Tracing and metrics
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.checkoutAdd", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "usecase.checkoutAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -219,7 +219,7 @@ func (c *CheckoutUsecase) CheckoutGet(ctx context.Context, checkout entity.Check
 	logger.Info(ctx, "checkout usecase CheckoutGet called")
 
 	// Tracing.
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.checkoutGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "usecase.checkoutGet", trace.SpanKindInternal)
 	defer span.End()
 
 	// Get the order from the repository
@@ -237,7 +237,7 @@ func (c *CheckoutUsecase) CheckoutPut(ctx context.Context, checkout entity.Check
 	logger.Info(ctx, "checkout usecase CheckoutPut called", zap.Any("checkout", checkout))
 
 	// Tracing.
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.checkoutPut", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "usecase.checkoutPut", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction

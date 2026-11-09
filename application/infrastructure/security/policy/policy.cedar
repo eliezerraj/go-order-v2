@@ -26,6 +26,7 @@ when {
     )
 };
 
+//-------------------
 
 permit(
     principal,
@@ -49,6 +50,8 @@ when {
     )
 };
 
+//-------------------
+
 permit(
     principal,
     action == Action::"add:order",
@@ -71,9 +74,11 @@ when {
     )
 };
 
+//-------------------
+
 permit(
     principal,
-    action == Action::"get:checkou",
+    action == Action::"get:checkout",
     resource
 )
 when {
@@ -84,7 +89,7 @@ when {
 
 permit(
     principal,
-    action == Action::"get:checkou",
+    action == Action::"get:checkout",
     resource
 )
 when {
@@ -92,6 +97,8 @@ when {
         "order-all-role"
     )
 };
+
+//-------------------
 
 permit(
     principal,

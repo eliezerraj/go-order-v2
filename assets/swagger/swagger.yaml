@@ -354,7 +354,7 @@ paths:
                               items:
                                 type: object
                                 properties:
-                                  payment_detail_date:
+                                  payment_date:
                                     type: string
                                     format: date-time
                                     example: '0001-01-01T00:00:00Z'

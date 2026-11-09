@@ -12,7 +12,7 @@ import (
 	"github.com/go-order-v2/application/domain/external"
 	"github.com/go-order-v2/application/infrastructure/repository"
 	"github.com/go-order-v2/application/infrastructure/module"
-	"github.com/go-order-v2/application/tracing"
+	"github.com/go-order-v2/application/infrastructure/observability"
 
 	"github.com/jackc/pgx/v5"
 
@@ -66,7 +66,7 @@ func (o *OrderUsecase) OrderAdd(ctx context.Context, order entity.Order) (res_or
 	logger.Info(ctx, "order usecase OrderAdd called")
 
 	// Tracing
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.orderAdd", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "usecase.orderAdd", trace.SpanKindInternal)
 	defer span.End()
 
 	// Start a new transaction
@@ -173,7 +173,7 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	logger.Info(ctx, "usecase order usecase OrderGet called")
 
 	// Tracing
-	ctx, span := tracing.CustomStartSpanCtx(ctx, "usecase.orderGet", trace.SpanKindInternal)
+	ctx, span := observability.CustomStartSpanCtx(ctx, "usecase.orderGet", trace.SpanKindInternal)
 	defer span.End()
 
 	// Get the order from the repository
@@ -191,13 +191,13 @@ func (o *OrderUsecase) OrderGet(ctx context.Context, order entity.Order) (*entit
 	}
 
 	// Get Product details for each order item from the inventory module
-	for _, item := range *res_order_itens {
+	for idx, item := range *res_order_itens {
 		res_product, err := o.inventoryModule.GetInventory(ctx, item.Product)
 		if err != nil {
 			logger.Debug(ctx, "order usecase OrderGet failed to check inventory", zap.Error(err))
 			return nil, err
 		}
-		item.Product = *res_product
+		(*res_order_itens)[idx].Product = *res_product
 	}
 
 	res_order.OrderItem = res_order_itens

@@ -19,8 +19,8 @@ type OrderRequest struct {
 
 type OrderItemRequest struct {
 	Product 		ProductRequest	`json:"product"`
-	Quantity		int			`json:"quantity,omitempty"`
-	Discount		float64		`json:"discount,omitempty"`
+	Quantity		int				`json:"quantity,omitempty"`
+	Discount		float64			`json:"discount,omitempty"`
 }
 
 type ProductRequest struct {
@@ -59,7 +59,7 @@ type PaymentRequest struct {
 
 type PaymentDetailRequest struct {
 	ID				int		`json:"id,omitempty"`
-	DetailDate	time.Time 	`json:"payment_detail_date,omitempty"`
+	DetailDate	time.Time 	`json:"payment_date,omitempty"`
 	Status		string 		`json:"status,omitempty"`
 	Currency	string 		`json:"currency,omitempty"`
 	Amount		float64 	`json:"amount,omitempty"`
@@ -93,4 +93,3 @@ type CheckoutResponse struct {
     Response string         `json:"response"`
     Checkout  any `json:"checkout"`
 }
-
