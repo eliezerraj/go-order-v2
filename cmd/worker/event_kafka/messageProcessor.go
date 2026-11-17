@@ -15,8 +15,8 @@ import (
 	"github.com/eliezerraj/go-core/v3/event/kafka/consumer"
 	
 	"github.com/go-order-v2/application/domain/entity"
-    "github.com/go-order-v2/application/shared/otelkafka"
 	"github.com/go-order-v2/application/infrastructure/observability"
+	"github.com/go-order-v2/application/infrastructure/observability/otelkafka"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
