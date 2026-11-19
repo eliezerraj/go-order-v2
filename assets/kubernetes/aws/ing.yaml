@@ -14,7 +14,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: go-order-v2.architecturedev.xpto.io
+    - host: go-order-v2.architecture.x.io
       http:
         paths:
         - path: /
